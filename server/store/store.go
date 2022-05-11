@@ -1,8 +1,8 @@
-package server
+package store
 
 import (
 	"context"
-	"iv2/dexcom"
+	"iv2/server/dexcom"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"

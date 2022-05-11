@@ -70,9 +70,7 @@ func TestGetReadings(t *testing.T) {
 		)
 
 	client := New("testAccount", "testPassword", zap.New(nil))
-	client.CreateSession(context.Background())
-
-	trs, err := client.GetReadings(context.Background(), 1440, 288)
+	trs, err := client.Readings(context.Background(), 1440, 288)
 	assert.NoError(t, err)
 	assert.EqualValues(t, expectedTrs, trs)
 }

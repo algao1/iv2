@@ -21,6 +21,10 @@ const (
 	loginEndpoint    = "General/LoginPublisherAccountByName"
 	authEndpoint     = "General/AuthenticatePublisherAccount"
 	readingsEndpoint = "Publisher/ReadPublisherLatestGlucoseValues"
+
+	// One day's worth.
+	MinuteLimit = 1440
+	CountLimit  = 288
 )
 
 type Client struct {
@@ -64,6 +68,20 @@ func New(accountName, password string, logger *zap.Logger) *Client {
 	}
 }
 
+// Readings fetches readings from Dexcom's Share API, and applies a transformation.
+// Automatically creates a new session when it expires.
+func (c *Client) Readings(ctx context.Context, minutes, maxCount int) ([]*TransformedReading, error) {
+	trs, err := c.readings(ctx, minutes, maxCount)
+	if err == nil {
+		return trs, nil
+	}
+	_, err = c.CreateSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return c.readings(ctx, minutes, maxCount)
+}
+
 func (c *Client) CreateSession(ctx context.Context) (string, error) {
 	lreq := &LoginRequest{
 		AccountName:   c.accountName,
@@ -105,10 +123,8 @@ func (c *Client) CreateSession(ctx context.Context) (string, error) {
 	return c.sessionID, nil
 }
 
-// GetReadings fetches readings from Dexcom's Share API, and applies a transformation.
-// Requires a sessionId to be established.
-func (c *Client) GetReadings(ctx context.Context, minutes, maxCount int) ([]*TransformedReading, error) {
-	if minutes > 1440 || maxCount > 288 {
+func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*TransformedReading, error) {
+	if minutes > MinuteLimit || maxCount > CountLimit {
 		return nil, fmt.Errorf("window too large: minutes %d, maxCount %d", minutes, maxCount)
 	}
 
@@ -139,7 +155,7 @@ func (c *Client) GetReadings(ctx context.Context, minutes, maxCount int) ([]*Tra
 
 	err = json.NewDecoder(resp.Body).Decode(&readings)
 	if err != nil {
-		c.logger.Debug("failed to decode readings response, restarting session")
+		c.logger.Debug("failed to decode readings response")
 		return nil, err
 	}
 
