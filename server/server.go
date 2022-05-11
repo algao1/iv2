@@ -21,14 +21,14 @@ type Server struct {
 	Store  *store.Store
 }
 
-type ServerConfig struct {
-	DexcomAccount  string
-	DexcomPassword string
-	MongoURI       string
+type Config struct {
+	DexcomAccount  string `yaml:"dexcomAccount"`
+	DexcomPassword string `yaml:"dexcomPassword"`
+	MongoURI       string `yaml:"mongoURI"`
 	Logger         *zap.Logger
 }
 
-func New(config ServerConfig) (*Server, error) {
+func New(config Config) (*Server, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutInterval)
 	defer cancel()
 
