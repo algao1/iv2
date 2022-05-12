@@ -13,7 +13,7 @@ import (
 
 const (
 	uploaderInterval = 1 * time.Minute
-	timeoutInterval  = 5 * time.Second
+	timeoutInterval  = 2 * time.Second
 )
 
 type Server struct {
@@ -31,6 +31,8 @@ type Config struct {
 func New(config Config) (*Server, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutInterval)
 	defer cancel()
+
+	config.Logger.Debug("connecting to mongo", zap.String("uri", config.MongoURI))
 
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(config.MongoURI))
 	if err != nil {

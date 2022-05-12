@@ -1,0 +1,22 @@
+version: "3.7"
+services:
+
+  server:
+    build:
+      context: .
+      dockerfile: ./cmd/Dockerfile
+    container_name: server
+    restart: always
+    depends_on:
+      - mongo
+
+  mongo:
+    image: "mongo:5.0"
+    container_name: mongo
+    volumes:
+      - type: bind
+        source: ./data
+        target: /data/db
+    restart: always
+    ports:
+      - "27017:27017"
