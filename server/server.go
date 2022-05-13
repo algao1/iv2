@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"iv2/server/dexcom"
+	"iv2/server/discgo"
 	"iv2/server/store"
 	"time"
 
@@ -17,13 +18,16 @@ const (
 )
 
 type Server struct {
-	Dexcom *dexcom.Client
-	Store  store.Store
+	Dexcom  *dexcom.Client
+	Discord *discgo.Discord
+	Store   store.Store
 }
 
 type Config struct {
 	DexcomAccount  string `yaml:"dexcomAccount"`
 	DexcomPassword string `yaml:"dexcomPassword"`
+	DiscordToken   string `yaml:"discordToken"`
+	DiscordGuild   string `yaml:"discordGuild"`
 	MongoURI       string `yaml:"mongoURI"`
 	Logger         *zap.Logger
 }
@@ -40,11 +44,22 @@ func New(config Config) (*Server, error) {
 	}
 
 	dexcom := dexcom.New(config.DexcomAccount, config.DexcomPassword, config.Logger)
+
+	discgo, err := discgo.New(config.DiscordToken, config.DiscordGuild, config.Logger)
+	if err != nil {
+		return nil, err
+	}
+	err = discgo.Setup()
+	if err != nil {
+		return nil, err
+	}
+
 	ms := &store.MongoStore{Client: mongoClient, Logger: config.Logger}
 
 	return &Server{
-		Dexcom: dexcom,
-		Store:  ms,
+		Dexcom:  dexcom,
+		Discord: discgo,
+		Store:   ms,
 	}, nil
 }
 
