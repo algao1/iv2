@@ -18,7 +18,7 @@ const (
 
 type Server struct {
 	Dexcom *dexcom.Client
-	Store  *store.Store
+	Store  store.Store
 }
 
 type Config struct {
@@ -40,11 +40,11 @@ func New(config Config) (*Server, error) {
 	}
 
 	dexcom := dexcom.New(config.DexcomAccount, config.DexcomPassword, config.Logger)
-	store := &store.Store{Client: mongoClient, Logger: config.Logger}
+	ms := &store.MongoStore{Client: mongoClient, Logger: config.Logger}
 
 	return &Server{
 		Dexcom: dexcom,
-		Store:  store,
+		Store:  ms,
 	}, nil
 }
 

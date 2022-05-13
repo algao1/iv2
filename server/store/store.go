@@ -20,17 +20,21 @@ type TimePoint interface {
 	GetTime() time.Time
 }
 
-type Store struct {
+type Store interface {
+	WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) error
+}
+
+type MongoStore struct {
 	Client *mongo.Client
 	Logger *zap.Logger
 }
 
-func (s *Store) writeEvent(ctx context.Context, collection string, event TimePoint) error {
-	s.Logger.Debug("inserting event",
+func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event TimePoint) error {
+	ms.Logger.Debug("inserting event",
 		zap.String("collection", collection),
 		zap.Any("event", event))
 
-	_, err := s.Client.
+	_, err := ms.Client.
 		Database(dbName).
 		Collection(collection).
 		UpdateOne(ctx, bson.M{
@@ -38,7 +42,7 @@ func (s *Store) writeEvent(ctx context.Context, collection string, event TimePoi
 		}, bson.M{"$set": event}, options.Update().SetUpsert(true))
 
 	if err != nil {
-		s.Logger.Debug("failed to insert event",
+		ms.Logger.Debug("failed to insert event",
 			zap.String("collection", collection),
 			zap.Any("event", event),
 			zap.Error(err))
@@ -47,6 +51,6 @@ func (s *Store) writeEvent(ctx context.Context, collection string, event TimePoi
 	return err
 }
 
-func (s *Store) WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) error {
-	return s.writeEvent(ctx, glucoseCollection, tr)
+func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) error {
+	return ms.writeEvent(ctx, glucoseCollection, tr)
 }
