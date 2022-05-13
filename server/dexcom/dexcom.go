@@ -169,7 +169,7 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*Transf
 		if err != nil {
 			return nil, err
 		}
-		trs[len(readings)-i-1] = tr // Reverses list, so latest is last.
+		trs[i] = tr
 	}
 
 	return trs, nil

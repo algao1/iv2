@@ -70,7 +70,10 @@ func (s *Server) RunUploader() {
 	for ; true; <-ticker.C {
 		trs, _ := s.Dexcom.Readings(context.Background(), dexcom.MinuteLimit, dexcom.CountLimit)
 		for _, tr := range trs {
-			s.Store.WriteGlucose(context.Background(), tr)
+			exist, _ := s.Store.WriteGlucose(context.Background(), tr)
+			if exist {
+				break
+			}
 		}
 	}
 }

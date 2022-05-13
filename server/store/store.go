@@ -21,7 +21,7 @@ type TimePoint interface {
 }
 
 type Store interface {
-	WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) error
+	WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) (bool, error)
 }
 
 type MongoStore struct {
@@ -29,12 +29,12 @@ type MongoStore struct {
 	Logger *zap.Logger
 }
 
-func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event TimePoint) error {
+func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event TimePoint) (bool, error) {
 	ms.Logger.Debug("inserting event",
 		zap.String("collection", collection),
 		zap.Any("event", event))
 
-	_, err := ms.Client.
+	res, err := ms.Client.
 		Database(dbName).
 		Collection(collection).
 		UpdateOne(ctx, bson.M{
@@ -48,9 +48,9 @@ func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event T
 			zap.Error(err))
 	}
 
-	return err
+	return (res.MatchedCount > 0), err
 }
 
-func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) error {
+func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) (bool, error) {
 	return ms.writeEvent(ctx, glucoseCollection, tr)
 }
