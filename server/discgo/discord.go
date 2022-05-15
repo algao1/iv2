@@ -26,7 +26,7 @@ type Discord struct {
 	chid discord.ChannelID
 }
 
-func New(token, guildID string, logger *zap.Logger) (*Discord, error) {
+func New(token string, logger *zap.Logger) (*Discord, error) {
 	ses, err := session.NewWithIntents("Bot "+token, gateway.IntentGuildMessages)
 	if err != nil {
 		return nil, err
@@ -37,20 +37,19 @@ func New(token, guildID string, logger *zap.Logger) (*Discord, error) {
 		return nil, err
 	}
 
-	sf, err := discord.ParseSnowflake(guildID)
-	if err != nil {
-		return nil, err
-	}
-	gid := discord.GuildID(sf)
-
 	return &Discord{
 		Session: ses,
 		Logger:  logger,
-		gid:     gid,
 	}, nil
 }
 
-func (d *Discord) Setup() error {
+func (d *Discord) Setup(guildID string) error {
+	sf, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return err
+	}
+	d.gid = discord.GuildID(sf)
+
 	channels, err := d.Session.Channels(d.gid)
 	if err != nil {
 		return err

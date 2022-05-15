@@ -65,8 +65,8 @@ func TestGetReadings(t *testing.T) {
 		}).
 		Reply(200).
 		BodyString(
-			`[{"WT":"Date(1651988108000)","ST":"Date(1651988108000)","DT":"Date(1651988108000-0400)","Value":220,"Trend":"Flat"},
-			{"WT":"Date(1651987807000)","ST":"Date(1651987807000)","DT":"Date(1651987807000-0400)","Value":219,"Trend":"Flat"}]`,
+			`[{"WT":"Date(1651987807000)","ST":"Date(1651987807000)","DT":"Date(1651987807000-0400)","Value":219,"Trend":"Flat"},
+				{"WT":"Date(1651988108000)","ST":"Date(1651988108000)","DT":"Date(1651988108000-0400)","Value":220,"Trend":"Flat"}]`,
 		)
 
 	client := New("testAccount", "testPassword", zap.New(nil))

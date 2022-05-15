@@ -45,11 +45,11 @@ func New(config Config) (*Server, error) {
 
 	dexcom := dexcom.New(config.DexcomAccount, config.DexcomPassword, config.Logger)
 
-	discgo, err := discgo.New(config.DiscordToken, config.DiscordGuild, config.Logger)
+	discgo, err := discgo.New(config.DiscordToken, config.Logger)
 	if err != nil {
 		return nil, err
 	}
-	err = discgo.Setup()
+	err = discgo.Setup(config.DiscordGuild)
 	if err != nil {
 		return nil, err
 	}
