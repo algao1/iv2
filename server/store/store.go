@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
@@ -22,6 +23,7 @@ type TimePoint interface {
 
 type Store interface {
 	WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) (bool, error)
+	ReadGlucose(ctx context.Context, start, end time.Time) ([]dexcom.TransformedReading, error)
 }
 
 type MongoStore struct {
@@ -51,6 +53,42 @@ func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event T
 	return (res.MatchedCount > 0), err
 }
 
+func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
+	ms.Logger.Debug("reading events",
+		zap.String("collection", collection),
+		zap.Time("start", start),
+		zap.Time("end", end),
+	)
+
+	cur, err := ms.Client.
+		Database(dbName).
+		Collection(collection).
+		Find(ctx, bson.M{
+			"time": bson.M{
+				"$gte": primitive.NewDateTimeFromTime(start),
+				"$lte": primitive.NewDateTimeFromTime(end),
+			},
+		})
+	if err != nil {
+		ms.Logger.Debug("failed to insert event",
+			zap.String("collection", collection),
+			zap.Time("start", start),
+			zap.Time("end", end),
+			zap.Error(err))
+		return err
+	}
+
+	return cur.All(ctx, slicePtr)
+}
+
 func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) (bool, error) {
 	return ms.writeEvent(ctx, glucoseCollection, tr)
+}
+
+func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]dexcom.TransformedReading, error) {
+	var trs []dexcom.TransformedReading
+	if err := ms.getEventBetween(ctx, glucoseCollection, start, end, &trs); err != nil {
+		return nil, err
+	}
+	return trs, nil
 }

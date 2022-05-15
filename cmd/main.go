@@ -36,5 +36,7 @@ func main() {
 		panic(err)
 	}
 
+	// TODO: Make this cleaner.
+	go s.RunDiscord()
 	s.RunUploader()
 }
