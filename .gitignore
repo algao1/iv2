@@ -1,4 +1,7 @@
 # Mounted volume.
 data
 
+# Experiments.
+notebooks
+
 *.yaml

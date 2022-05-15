@@ -1,7 +1,7 @@
 package discgo
 
 import (
-	"iv2/server/dexcom"
+	"iv2/gourgeist/dexcom"
 	"strconv"
 	"time"
 

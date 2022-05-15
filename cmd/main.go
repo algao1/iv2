@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"io/ioutil"
-	"iv2/server"
+	"iv2/gourgeist"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -18,7 +18,7 @@ func init() {
 
 func main() {
 	logger, _ := zap.NewDevelopment()
-	config := server.Config{Logger: logger}
+	config := gourgeist.Config{Logger: logger}
 
 	file, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -31,7 +31,7 @@ func main() {
 
 	logger.Debug("loaded config file", zap.String("file", configFile))
 
-	s, err := server.New(config)
+	s, err := gourgeist.New(config)
 	if err != nil {
 		panic(err)
 	}

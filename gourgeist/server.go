@@ -1,10 +1,10 @@
-package server
+package gourgeist
 
 import (
 	"context"
-	"iv2/server/dexcom"
-	"iv2/server/discgo"
-	"iv2/server/store"
+	"iv2/gourgeist/dexcom"
+	"iv2/gourgeist/discgo"
+	"iv2/gourgeist/store"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"

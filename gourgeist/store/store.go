@@ -2,7 +2,7 @@ package store
 
 import (
 	"context"
-	"iv2/server/dexcom"
+	"iv2/gourgeist/dexcom"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
