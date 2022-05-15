@@ -64,11 +64,16 @@ func (d *Discord) Setup(guildID string) error {
 
 	d.Logger.Debug("creating channel", zap.String("channel name", broadcastChannelName))
 
-	_, err = d.Session.CreateChannel(d.gid, api.CreateChannelData{
+	channel, err := d.Session.CreateChannel(d.gid, api.CreateChannelData{
 		Name: broadcastChannelName,
 		Type: discord.GuildText,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	d.chid = channel.ID
+	return nil
 }
 
 func floatToString(v float64) string {
