@@ -6,13 +6,29 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"gopkg.in/h2non/gock.v1"
 )
 
-func TestCreateSession(t *testing.T) {
-	defer gock.Off()
+type DexcomTestSuite struct {
+	suite.Suite
+	dexcom *Client
+}
 
+func TestDexcomTestSuite(t *testing.T) {
+	suite.Run(t, new(DexcomTestSuite))
+}
+
+func (suite *DexcomTestSuite) SetupSuite() {
+	suite.dexcom = New("testAccount", "testPassword", zap.New(nil))
+}
+
+func (suite *DexcomTestSuite) AfterTest(_, _ string) {
+	gock.Off()
+}
+
+func (suite *DexcomTestSuite) TestCreateSession() {
 	gock.New(baseUrl).
 		Post("/" + loginEndpoint).
 		MatchType("json").
@@ -26,13 +42,11 @@ func TestCreateSession(t *testing.T) {
 
 	client := New("testAccount", "testPassword", zap.New(nil))
 	sid, err := client.CreateSession(context.Background())
-	assert.NoError(t, err)
-	assert.Equal(t, "test", sid)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "test", sid)
 }
 
-func TestGetReadings(t *testing.T) {
-	defer gock.Off()
-
+func (suite *DexcomTestSuite) TestGetReadings() {
 	expectedTrs := []*TransformedReading{
 		{
 			Time:  time.Unix(int64(1651987807000/1000), 0),
@@ -71,6 +85,6 @@ func TestGetReadings(t *testing.T) {
 
 	client := New("testAccount", "testPassword", zap.New(nil))
 	trs, err := client.Readings(context.Background(), 1440, 288)
-	assert.NoError(t, err)
-	assert.EqualValues(t, expectedTrs, trs)
+	assert.NoError(suite.T(), err)
+	assert.EqualValues(suite.T(), expectedTrs, trs)
 }

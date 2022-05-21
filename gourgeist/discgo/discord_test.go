@@ -19,6 +19,13 @@ type DiscordTestSuite struct {
 	gid    discord.GuildID
 }
 
+func TestDiscordTestSuiteIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	suite.Run(t, new(DiscordTestSuite))
+}
+
 func (suite *DiscordTestSuite) SetupSuite() {
 	token, exist := os.LookupEnv("DISCORD_TOKEN")
 	if !exist {
@@ -67,11 +74,4 @@ func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
 		Trend: "Flat",
 	}
 	assert.NoError(suite.T(), suite.discgo.UpdateMain(&tr, "", nil), "unable to update main")
-}
-
-func TestDiscordTestSuiteIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-	suite.Run(t, new(DiscordTestSuite))
 }
