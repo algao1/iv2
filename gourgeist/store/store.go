@@ -1,13 +1,16 @@
 package store
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"iv2/gourgeist/dexcom"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
@@ -15,6 +18,7 @@ import (
 const (
 	dbName            = "ichor"
 	glucoseCollection = "glucose"
+	filesCollection   = "fs.files"
 )
 
 type TimePoint interface {
@@ -24,6 +28,9 @@ type TimePoint interface {
 type Store interface {
 	WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) (bool, error)
 	ReadGlucose(ctx context.Context, start, end time.Time) ([]dexcom.TransformedReading, error)
+
+	ReadFile(ctx context.Context, fid string) (io.Reader, error)
+	DeleteFile(ctx context.Context, fid string) error
 }
 
 type MongoStore struct {
@@ -91,4 +98,40 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 		return nil, err
 	}
 	return trs, nil
+}
+
+func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, error) {
+	db := ms.Client.Database(dbName)
+	bucket, err := gridfs.NewBucket(db)
+	if err != nil {
+		return nil, err
+	}
+
+	oid, err := primitive.ObjectIDFromHex(fid)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	_, err = bucket.DownloadToStream(oid, &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return &buf, nil
+}
+
+func (ms *MongoStore) DeleteFile(ctx context.Context, fid string) error {
+	db := ms.Client.Database(dbName)
+	bucket, err := gridfs.NewBucket(db)
+	if err != nil {
+		return err
+	}
+
+	oid, err := primitive.ObjectIDFromHex(fid)
+	if err != nil {
+		return err
+	}
+
+	return bucket.Delete(oid)
 }

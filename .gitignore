@@ -4,4 +4,9 @@ data
 # Experiments.
 notebooks
 
+# Auto-generated files.
+__pycache__
+proto
+
+# Configs.
 *.yaml

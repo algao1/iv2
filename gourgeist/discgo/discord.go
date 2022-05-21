@@ -1,6 +1,7 @@
 package discgo
 
 import (
+	"io"
 	"iv2/gourgeist/dexcom"
 	"strconv"
 	"time"
@@ -80,7 +81,7 @@ func floatToString(v float64) string {
 	return strconv.FormatFloat(v, 'f', 2, 64)
 }
 
-func (d *Discord) UpdateMain(tr *dexcom.TransformedReading) error {
+func (d *Discord) UpdateMain(tr *dexcom.TransformedReading, fname string, imgReader io.Reader) error {
 	msgs, err := d.Session.Messages(d.chid, 10)
 	if err != nil {
 		return err
@@ -93,11 +94,22 @@ func (d *Discord) UpdateMain(tr *dexcom.TransformedReading) error {
 		},
 	}
 
-	if len(msgs) == 0 {
-		_, err = d.Session.SendEmbed(d.chid, embed)
-		return err
+	msgData := api.SendMessageData{
+		Embed: &embed,
+		Files: []api.SendMessageFile{},
 	}
-	_, err = d.Session.EditMessage(d.chid, msgs[0].ID, "", &embed, false)
+
+	if imgReader != nil {
+		d.Logger.Debug("adding image to embed", zap.String("name", fname))
+		embed.Image = &discord.EmbedImage{URL: "attachment://" + fname}
+		msgData.Files = append(msgData.Files, api.SendMessageFile{Name: fname, Reader: imgReader})
+	}
+
+	for _, msg := range msgs {
+		d.Session.DeleteMessage(d.chid, msg.ID)
+	}
+
+	_, err = d.Session.SendMessageComplex(d.chid, msgData)
 
 	d.Logger.Debug("updated main message", zap.Any("embed", embed))
 

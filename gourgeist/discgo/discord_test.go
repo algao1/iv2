@@ -66,7 +66,7 @@ func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
 		Mmol:  6.5,
 		Trend: "Flat",
 	}
-	assert.NoError(suite.T(), suite.discgo.UpdateMain(&tr), "unable to update main")
+	assert.NoError(suite.T(), suite.discgo.UpdateMain(&tr, "", nil), "unable to update main")
 }
 
 func TestDiscordTestSuiteIntegration(t *testing.T) {

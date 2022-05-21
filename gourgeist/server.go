@@ -4,12 +4,15 @@ import (
 	"context"
 	"iv2/gourgeist/dexcom"
 	"iv2/gourgeist/discgo"
+	"iv2/gourgeist/ghastly"
 	"iv2/gourgeist/store"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -21,6 +24,7 @@ const (
 type Server struct {
 	Dexcom  *dexcom.Client
 	Discord *discgo.Discord
+	Ghastly *ghastly.Client
 	Store   store.Store
 	Logger  *zap.Logger
 }
@@ -31,6 +35,7 @@ type Config struct {
 	DiscordToken   string `yaml:"discordToken"`
 	DiscordGuild   string `yaml:"discordGuild"`
 	MongoURI       string `yaml:"mongoURI"`
+	TrevenantAddr  string `yaml:"trevenantAddress"`
 	Logger         *zap.Logger
 }
 
@@ -54,6 +59,12 @@ func New(config Config) (*Server, error) {
 		return nil, err
 	}
 
+	conn, err := grpc.Dial(config.TrevenantAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+	gh := ghastly.New(conn, config.Logger)
+
 	ms := &store.MongoStore{Client: mongoClient, Logger: config.Logger}
 
 	config.Logger.Debug("finished server setup", zap.Any("config", config))
@@ -61,6 +72,7 @@ func New(config Config) (*Server, error) {
 	return &Server{
 		Dexcom:  dexcom,
 		Discord: discgo,
+		Ghastly: gh,
 		Store:   ms,
 		Logger:  config.Logger,
 	}, nil
@@ -71,7 +83,7 @@ func (s *Server) RunDiscord() {
 	defer ticker.Stop()
 
 	for ; true; <-ticker.C {
-		trs, err := s.Store.ReadGlucose(context.Background(), time.Now().Add(-10*time.Minute), time.Now())
+		trs, err := s.Store.ReadGlucose(context.Background(), time.Now().UTC().Add(-12*time.Hour), time.Now().UTC())
 		if err != nil {
 			s.Logger.Debug("unable to read glucose from store", zap.Error(err))
 		}
@@ -80,7 +92,27 @@ func (s *Server) RunDiscord() {
 			continue
 		}
 
-		s.Discord.UpdateMain(&trs[len(trs)-1])
+		fr, err := s.Ghastly.GenerateDailyPlot(context.Background(), trs)
+		if err != nil {
+			s.Logger.Debug("unable to generate daily plot", zap.Error(err))
+		}
+
+		if fr.GetId() == "-1" {
+			s.Logger.Debug("unable to generate daily plot")
+			continue
+		}
+
+		fileReader, err := s.Store.ReadFile(context.Background(), fr.GetId())
+		if err != nil {
+			s.Logger.Debug("unable to read file", zap.Error(err))
+			continue
+		}
+
+		if err := s.Store.DeleteFile(context.Background(), fr.GetId()); err != nil {
+			s.Logger.Debug("unable to delete file", zap.Error(err))
+		}
+
+		s.Discord.UpdateMain(&trs[0], fr.GetName(), fileReader)
 	}
 }
 

@@ -1,0 +1,23 @@
+syntax = "proto3";
+package proto;
+
+import "google/protobuf/timestamp.proto";
+option go_package = "iv2/proto";
+
+service Plotter {
+  rpc PlotDaily(History) returns (FileResponse) {}
+}
+
+message History {
+  repeated TimePoint tps = 1;
+}
+
+message TimePoint {
+  google.protobuf.Timestamp time = 1;
+  double value = 2;
+}
+
+message FileResponse {
+  string id = 1;
+  string name = 2;
+}
