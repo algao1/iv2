@@ -8,8 +8,6 @@ import (
 	"iv2/gourgeist/store"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -19,6 +17,8 @@ const (
 	uploaderInterval = 1 * time.Minute
 	updaterInterval  = uploaderInterval
 	timeoutInterval  = 2 * time.Second
+
+	defaultDBName = "ichor"
 )
 
 type Server struct {
@@ -43,7 +43,7 @@ func New(config Config) (*Server, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutInterval)
 	defer cancel()
 
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(config.MongoURI))
+	ms, err := store.New(ctx, config.MongoURI, defaultDBName, config.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +64,6 @@ func New(config Config) (*Server, error) {
 		return nil, err
 	}
 	gh := ghastly.New(conn, config.Logger)
-
-	ms := &store.MongoStore{Client: mongoClient, Logger: config.Logger}
 
 	config.Logger.Debug("finished server setup", zap.Any("config", config))
 

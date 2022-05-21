@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	dbName            = "ichor"
 	glucoseCollection = "glucose"
 	filesCollection   = "fs.files"
 )
@@ -36,6 +35,20 @@ type Store interface {
 type MongoStore struct {
 	Client *mongo.Client
 	Logger *zap.Logger
+
+	DBName string
+}
+
+func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (Store, error) {
+	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, err
+	}
+	return &MongoStore{
+		Client: mongoClient,
+		Logger: logger,
+		DBName: dbName,
+	}, nil
 }
 
 func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event TimePoint) (bool, error) {
@@ -44,7 +57,7 @@ func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event T
 		zap.Any("event", event))
 
 	res, err := ms.Client.
-		Database(dbName).
+		Database(ms.DBName).
 		Collection(collection).
 		UpdateOne(ctx, bson.M{
 			"time": event.GetTime(),
@@ -68,7 +81,7 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 	)
 
 	cur, err := ms.Client.
-		Database(dbName).
+		Database(ms.DBName).
 		Collection(collection).
 		Find(ctx, bson.M{
 			"time": bson.M{
@@ -101,7 +114,7 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 }
 
 func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, error) {
-	db := ms.Client.Database(dbName)
+	db := ms.Client.Database(ms.DBName)
 	bucket, err := gridfs.NewBucket(db)
 	if err != nil {
 		return nil, err
@@ -122,7 +135,7 @@ func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, erro
 }
 
 func (ms *MongoStore) DeleteFile(ctx context.Context, fid string) error {
-	db := ms.Client.Database(dbName)
+	db := ms.Client.Database(ms.DBName)
 	bucket, err := gridfs.NewBucket(db)
 	if err != nil {
 		return err
