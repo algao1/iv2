@@ -1,3 +1,4 @@
+import gc
 import matplotlib.pyplot as plt
 import matplotlib.dates as md
 import seaborn as sns
@@ -53,4 +54,10 @@ def plot(xs, ys):
     buf = BytesIO()
     plt.savefig(buf, bbox_inches="tight")
     buf.seek(0)
+
+    plt.cla()
+    plt.clf()
+    plt.close("all")
+    gc.collect()
+
     return buf.read()
