@@ -1,9 +1,6 @@
 package discgo
 
 import (
-	"io"
-	"iv2/gourgeist/dexcom"
-	"strconv"
 	"time"
 
 	"github.com/diamondburned/arikawa/api"
@@ -20,14 +17,15 @@ const (
 )
 
 type Discord struct {
-	Session *session.Session
-	Logger  *zap.Logger
+	Session  *session.Session
+	Logger   *zap.Logger
+	Location *time.Location
 
 	gid  discord.GuildID
 	chid discord.ChannelID
 }
 
-func New(token string, logger *zap.Logger) (*Discord, error) {
+func New(token string, logger *zap.Logger, loc *time.Location) (*Discord, error) {
 	ses, err := session.NewWithIntents("Bot "+token, gateway.IntentGuildMessages)
 	if err != nil {
 		return nil, err
@@ -39,8 +37,9 @@ func New(token string, logger *zap.Logger) (*Discord, error) {
 	}
 
 	return &Discord{
-		Session: ses,
-		Logger:  logger,
+		Session:  ses,
+		Logger:   logger,
+		Location: loc,
 	}, nil
 }
 
@@ -77,41 +76,21 @@ func (d *Discord) Setup(guildID string) error {
 	return nil
 }
 
-func floatToString(v float64) string {
-	return strconv.FormatFloat(v, 'f', 2, 64)
-}
-
-func (d *Discord) UpdateMain(tr *dexcom.TransformedReading, fname string, imgReader io.Reader) error {
+func (d *Discord) UpdateMainMessage(msgData api.SendMessageData) error {
 	msgs, err := d.Session.Messages(d.chid, 10)
 	if err != nil {
 		return err
 	}
 
-	embed := discord.Embed{
-		Title: time.Now().Format(TimeFormat),
-		Fields: []discord.EmbedField{
-			{Name: "Current", Value: floatToString(tr.Mmol)},
-		},
-	}
-
-	msgData := api.SendMessageData{
-		Embed: &embed,
-		Files: []api.SendMessageFile{},
-	}
-
-	if imgReader != nil {
-		d.Logger.Debug("adding image to embed", zap.String("name", fname))
-		embed.Image = &discord.EmbedImage{URL: "attachment://" + fname}
-		msgData.Files = append(msgData.Files, api.SendMessageFile{Name: fname, Reader: imgReader})
-	}
-
 	for _, msg := range msgs {
-		d.Session.DeleteMessage(d.chid, msg.ID)
+		err = d.Session.DeleteMessage(d.chid, msg.ID)
+		if err != nil {
+			return err
+		}
 	}
+
+	d.Logger.Debug("updating main message", zap.Any("msgData", msgData))
 
 	_, err = d.Session.SendMessageComplex(d.chid, msgData)
-
-	d.Logger.Debug("updated main message", zap.Any("embed", embed))
-
 	return err
 }

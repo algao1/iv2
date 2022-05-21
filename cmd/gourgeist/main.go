@@ -37,6 +37,6 @@ func main() {
 	}
 
 	// TODO: Make this cleaner.
-	go s.RunDiscord()
-	s.RunUploader()
+	go s.ExecuteTask(gourgeist.DownloaderInterval, s.FetchUploadReadings)
+	s.ExecuteTask(gourgeist.UpdaterInterval, s.UpdateDiscord)
 }

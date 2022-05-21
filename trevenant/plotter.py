@@ -33,7 +33,6 @@ class PlotterServicer(ps):
         ]
         ys = [tp.value for tp in request.tps]
         fname = "daily-" + xs[-1].strftime("%m%d%Y-%H%M%S-%z") + ".png"
-        print(fname)
         iid = self.store.store_image(plot(xs, ys), fname)
         return FileResponse(id=f"{iid}", name=fname)
 

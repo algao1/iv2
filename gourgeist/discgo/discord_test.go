@@ -3,6 +3,7 @@ package discgo
 import (
 	"iv2/gourgeist/dexcom"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ func (suite *DiscordTestSuite) SetupSuite() {
 	if !exist {
 		panic("no token found")
 	}
-	discgo, err := New(token, zap.NewExample())
+	discgo, err := New(token, zap.NewExample(), time.Local)
 	if err != nil {
 		panic(err)
 	}
@@ -73,5 +74,18 @@ func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
 		Mmol:  6.5,
 		Trend: "Flat",
 	}
-	assert.NoError(suite.T(), suite.discgo.UpdateMain(&tr, "", nil), "unable to update main")
+
+	embed := discord.Embed{
+		Title: tr.Time.In(suite.discgo.Location).Format(TimeFormat),
+		Fields: []discord.EmbedField{
+			{Name: "Current", Value: strconv.FormatFloat(tr.Mmol, 'f', 2, 64)},
+		},
+	}
+
+	msgData := api.SendMessageData{
+		Embed: &embed,
+		Files: []api.SendMessageFile{},
+	}
+
+	assert.NoError(suite.T(), suite.discgo.UpdateMainMessage(msgData), "unable to update main")
 }
