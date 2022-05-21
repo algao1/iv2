@@ -1,12 +1,20 @@
 version: "3.7"
 services:
 
-  server:
+  gourgeist:
     build:
       context: .
-      dockerfile: ./cmd/Dockerfile
-    container_name: server
-    restart: always
+      dockerfile: ./cmd/gourgeist/Dockerfile
+    container_name: gourgeist
+    depends_on:
+      - trevenant
+      - mongo
+
+  trevenant:
+    build:
+      context: .
+      dockerfile: ./cmd/trevenant/Dockerfile
+    container_name: trevenant
     depends_on:
       - mongo
 

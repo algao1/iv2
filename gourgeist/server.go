@@ -76,6 +76,8 @@ func New(config Config) (*Server, error) {
 	}, nil
 }
 
+// TODO: Functions below need to be updated/refactored.
+
 func (s *Server) RunDiscord() {
 	ticker := time.NewTicker(uploaderInterval)
 	defer ticker.Stop()
@@ -97,13 +99,11 @@ func (s *Server) RunDiscord() {
 
 		if fr.GetId() == "-1" {
 			s.Logger.Debug("unable to generate daily plot")
-			continue
 		}
 
 		fileReader, err := s.Store.ReadFile(context.Background(), fr.GetId())
 		if err != nil {
 			s.Logger.Debug("unable to read file", zap.Error(err))
-			continue
 		}
 
 		if err := s.Store.DeleteFile(context.Background(), fr.GetId()); err != nil {

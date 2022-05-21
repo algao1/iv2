@@ -3,7 +3,7 @@ from pymongo import MongoClient
 
 
 class Store:
-    def __init__(self, uri="mongodb://localhost:27017/") -> None:
+    def __init__(self, uri) -> None:
         self.client = MongoClient(uri)
 
     def store_image(self, contents, filename):

@@ -19,8 +19,8 @@ sns.set_theme(style="darkgrid")
 
 
 class PlotterServicer(ps):
-    def __init__(self) -> None:
-        self.store = Store()
+    def __init__(self, uri="mongodb://localhost:27017/") -> None:
+        self.store = Store(uri)
 
     def PlotDaily(self, request, context):
         eastern = timezone("US/Eastern")
