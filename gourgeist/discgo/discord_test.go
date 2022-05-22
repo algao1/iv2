@@ -68,7 +68,7 @@ func (suite *DiscordTestSuite) TestSetupIntegration() {
 	assert.True(suite.T(), chFound, "broadcast channel not found")
 }
 
-func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
+func getSimpleMessageData() api.SendMessageData {
 	tr := dexcom.TransformedReading{
 		Time:  time.Date(2022, time.May, 15, 1, 30, 0, 0, time.UTC),
 		Mmol:  6.5,
@@ -76,16 +76,28 @@ func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
 	}
 
 	embed := discord.Embed{
-		Title: tr.Time.In(suite.discgo.Location).Format(TimeFormat),
+		Title: tr.Time.In(time.UTC).Format(TimeFormat),
 		Fields: []discord.EmbedField{
 			{Name: "Current", Value: strconv.FormatFloat(tr.Mmol, 'f', 2, 64)},
 		},
 	}
 
-	msgData := api.SendMessageData{
+	return api.SendMessageData{
 		Embed: &embed,
 		Files: []api.SendMessageFile{},
 	}
+}
 
+func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
+	msgData := getSimpleMessageData()
 	assert.NoError(suite.T(), suite.discgo.UpdateMainMessage(msgData), "unable to update main")
+}
+
+func (suite *DiscordTestSuite) TestGetMainIntegration() {
+	msgData := getSimpleMessageData()
+	assert.NoError(suite.T(), suite.discgo.UpdateMainMessage(msgData), "unable to update main")
+	msg, err := suite.discgo.GetMainMessage()
+	assert.NoError(suite.T(), err, "unable to get main")
+	assert.Len(suite.T(), msg.Embeds, 1, "did not find exactly one embed")
+	assert.EqualValues(suite.T(), *msgData.Embed, msg.Embeds[0], "got different embeds")
 }

@@ -36,6 +36,17 @@ func (u DisplayUpdater) Update() error {
 		return fmt.Errorf("no glucose readings found")
 	}
 
+	prevMsg, err := u.Display.GetMainMessage()
+	if err != nil {
+		return err
+	}
+
+	if len(prevMsg.Embeds) > 0 &&
+		prevMsg.Embeds[0].Title == trs[0].GetTime().In(u.Location).Format(discgo.TimeFormat) {
+		u.Logger.Debug("skipping display update, up to date", zap.String("date", prevMsg.Embeds[0].Title))
+		return nil
+	}
+
 	fr, err := u.Plotter.GenerateDailyPlot(context.Background(), trs)
 	if err != nil {
 		u.Logger.Debug("unable to generate daily plot", zap.Error(err))

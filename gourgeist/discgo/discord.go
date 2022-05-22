@@ -1,6 +1,7 @@
 package discgo
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/diamondburned/arikawa/api"
@@ -26,6 +27,7 @@ type Discord struct {
 }
 
 type Display interface {
+	GetMainMessage() (*discord.Message, error)
 	UpdateMainMessage(msgData api.SendMessageData) error
 }
 
@@ -78,6 +80,17 @@ func (d *Discord) Setup(guildID string) error {
 
 	d.chid = channel.ID
 	return nil
+}
+
+func (d *Discord) GetMainMessage() (*discord.Message, error) {
+	msgs, err := d.Session.Messages(d.chid, 10)
+	if err != nil {
+		return nil, err
+	}
+	if len(msgs) == 0 {
+		return nil, fmt.Errorf("no messages found")
+	}
+	return &msgs[0], nil
 }
 
 func (d *Discord) UpdateMainMessage(msgData api.SendMessageData) error {
