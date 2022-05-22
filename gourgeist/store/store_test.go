@@ -33,7 +33,7 @@ func (suite *MongoTestSuite) SetupSuite() {
 	if err != nil {
 		panic(err)
 	}
-	suite.ms = ms.(*MongoStore)
+	suite.ms = ms
 }
 
 func (suite *MongoTestSuite) AfterTest(_, _ string) {

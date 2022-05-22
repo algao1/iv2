@@ -39,7 +39,7 @@ type MongoStore struct {
 	DBName string
 }
 
-func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (Store, error) {
+func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (*MongoStore, error) {
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
@@ -80,6 +80,9 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 		zap.Time("end", end),
 	)
 
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{primitive.E{Key: "time", Value: -1}})
+
 	cur, err := ms.Client.
 		Database(ms.DBName).
 		Collection(collection).
@@ -88,7 +91,7 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 				"$gte": primitive.NewDateTimeFromTime(start),
 				"$lte": primitive.NewDateTimeFromTime(end),
 			},
-		})
+		}, findOptions)
 	if err != nil {
 		ms.Logger.Debug("failed to insert event",
 			zap.String("collection", collection),

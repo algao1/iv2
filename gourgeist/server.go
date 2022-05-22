@@ -6,11 +6,8 @@ import (
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
 	"iv2/gourgeist/store"
-	"strconv"
 	"time"
 
-	"github.com/diamondburned/arikawa/api"
-	"github.com/diamondburned/arikawa/discord"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -20,8 +17,7 @@ const (
 	DownloaderInterval = 1 * time.Minute
 	UpdaterInterval    = DownloaderInterval
 
-	timeoutInterval  = 2 * time.Second
-	lookbackInterval = -12 * time.Hour
+	timeoutInterval = 2 * time.Second
 
 	defaultDBName = "ichor"
 )
@@ -94,7 +90,7 @@ func New(config Config) (*Server, error) {
 	}, nil
 }
 
-// TODO: Functions below need to be updated/refactored.
+// TODO: Below needs to be refactored into an executor struct.
 
 func (s *Server) ExecuteTask(interval time.Duration, task func()) {
 	ticker := time.NewTicker(interval)
@@ -105,66 +101,11 @@ func (s *Server) ExecuteTask(interval time.Duration, task func()) {
 }
 
 func (s *Server) UpdateDiscord() {
-	now := time.Now().UTC()
-	trs, err := s.Store.ReadGlucose(context.Background(), now.Add(lookbackInterval), now)
-	if err != nil {
-		s.Logger.Debug("unable to read glucose from store", zap.Error(err))
-		return
-	}
-
-	if len(trs) == 0 {
-		s.Logger.Debug("no glucose readings found")
-		return
-	}
-
-	fr, err := s.Ghastly.GenerateDailyPlot(context.Background(), trs)
-	if err != nil {
-		s.Logger.Debug("unable to generate daily plot", zap.Error(err))
-	}
-
-	if fr.GetId() == "-1" {
-		s.Logger.Debug("unable to generate daily plot")
-	}
-
-	fileReader, err := s.Store.ReadFile(context.Background(), fr.GetId())
-	if err != nil {
-		s.Logger.Debug("unable to read file", zap.Error(err))
-	}
-
-	if err := s.Store.DeleteFile(context.Background(), fr.GetId()); err != nil {
-		s.Logger.Debug("unable to delete file", zap.Error(err))
-	}
-
-	tr := trs[len(trs)-1]
-	embed := discord.Embed{
-		Title: tr.Time.In(s.Location).Format(discgo.TimeFormat),
-		Fields: []discord.EmbedField{
-			{Name: "Current", Value: strconv.FormatFloat(tr.Mmol, 'f', 2, 64)},
-		},
-	}
-	msgData := api.SendMessageData{
-		Embed: &embed,
-		Files: []api.SendMessageFile{},
-	}
-
-	if fileReader != nil {
-		s.Logger.Debug("adding image to embed", zap.String("name", fr.GetName()))
-		embed.Image = &discord.EmbedImage{URL: "attachment://" + fr.GetName()}
-		msgData.Files = append(msgData.Files, api.SendMessageFile{Name: fr.GetName(), Reader: fileReader})
-	}
-
-	s.Discord.UpdateMainMessage(msgData)
+	du := DisplayUpdater{Display: s.Discord, Plotter: s.Ghastly, Store: s.Store, Logger: s.Logger, Location: s.Location}
+	du.Update()
 }
 
 func (s *Server) FetchUploadReadings() {
-	trs, _ := s.Dexcom.Readings(context.Background(), dexcom.MinuteLimit, dexcom.CountLimit)
-	for _, tr := range trs {
-		exist, err := s.Store.WriteGlucose(context.Background(), tr)
-		if err != nil {
-			s.Logger.Debug("unable to write glucose to store", zap.Error(err))
-		}
-		if exist {
-			return
-		}
-	}
+	f := Fetcher{Source: s.Dexcom, Store: s.Store, Logger: s.Logger}
+	f.FetchAndLoad()
 }

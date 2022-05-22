@@ -25,6 +25,10 @@ type Discord struct {
 	chid discord.ChannelID
 }
 
+type Display interface {
+	UpdateMainMessage(msgData api.SendMessageData) error
+}
+
 func New(token string, logger *zap.Logger, loc *time.Location) (*Discord, error) {
 	ses, err := session.NewWithIntents("Bot "+token, gateway.IntentGuildMessages)
 	if err != nil {

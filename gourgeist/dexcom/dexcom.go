@@ -35,6 +35,10 @@ type Client struct {
 	sessionID   string
 }
 
+type Source interface {
+	Readings(ctx context.Context, minutes, maxCount int) ([]*TransformedReading, error)
+}
+
 type LoginRequest struct {
 	AccountName   string `json:"accountName"`
 	Password      string `json:"password"`

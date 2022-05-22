@@ -15,6 +15,10 @@ type Client struct {
 	Logger  *zap.Logger
 }
 
+type Plotter interface {
+	GenerateDailyPlot(ctx context.Context, trs []dexcom.TransformedReading) (*proto.FileResponse, error)
+}
+
 func New(conn *grpc.ClientConn, logger *zap.Logger) *Client {
 	return &Client{
 		Plotter: proto.NewPlotterClient(conn),
