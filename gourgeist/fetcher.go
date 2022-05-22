@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/dexcom"
-	"iv2/gourgeist/store"
+	"iv2/gourgeist/mongo"
 
 	"go.uber.org/zap"
 )
 
 type Fetcher struct {
 	Source dexcom.Source
-	Store  store.Store
+	Store  mongo.Store
 
 	Logger *zap.Logger
 }

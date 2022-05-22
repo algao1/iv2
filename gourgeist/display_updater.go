@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
-	"iv2/gourgeist/store"
+	"iv2/gourgeist/mongo"
 	"strconv"
 	"time"
 
@@ -19,7 +19,7 @@ const lookbackInterval = -12 * time.Hour
 type DisplayUpdater struct {
 	Display discgo.Display
 	Plotter ghastly.Plotter
-	Store   store.Store
+	Store   mongo.Store
 
 	Logger   *zap.Logger
 	Location *time.Location

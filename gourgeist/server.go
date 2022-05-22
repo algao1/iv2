@@ -5,7 +5,7 @@ import (
 	"iv2/gourgeist/dexcom"
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
-	"iv2/gourgeist/store"
+	"iv2/gourgeist/mongo"
 	"time"
 
 	"go.uber.org/zap"
@@ -22,15 +22,6 @@ const (
 	defaultDBName = "ichor"
 )
 
-type Server struct {
-	Dexcom   *dexcom.Client
-	Discord  *discgo.Discord
-	Ghastly  *ghastly.Client
-	Store    store.Store
-	Logger   *zap.Logger
-	Location *time.Location
-}
-
 type Config struct {
 	DexcomAccount  string `yaml:"dexcomAccount"`
 	DexcomPassword string `yaml:"dexcomPassword"`
@@ -42,7 +33,7 @@ type Config struct {
 	Logger         *zap.Logger
 }
 
-func New(config Config) (*Server, error) {
+func Run(config Config) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutInterval)
 	defer cancel()
 
@@ -52,60 +43,54 @@ func New(config Config) (*Server, error) {
 	if config.Timezone != "" {
 		loc, err = time.LoadLocation(config.Timezone)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 	}
 
-	ms, err := store.New(ctx, config.MongoURI, defaultDBName, config.Logger)
+	ms, err := mongo.New(ctx, config.MongoURI, defaultDBName, config.Logger)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	dexcom := dexcom.New(config.DexcomAccount, config.DexcomPassword, config.Logger)
 
 	discgo, err := discgo.New(config.DiscordToken, config.Logger, loc)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	err = discgo.Setup(config.DiscordGuild)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	conn, err := grpc.Dial(config.TrevenantAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	gh := ghastly.New(conn, config.Logger)
 
-	config.Logger.Debug("finished server setup", zap.Any("config", config))
-
-	return &Server{
-		Dexcom:   dexcom,
-		Discord:  discgo,
-		Ghastly:  gh,
+	du := DisplayUpdater{
+		Display:  discgo,
+		Plotter:  gh,
 		Store:    ms,
 		Logger:   config.Logger,
 		Location: loc,
-	}, nil
+	}
+
+	f := Fetcher{
+		Source: dexcom,
+		Store:  ms,
+		Logger: config.Logger,
+	}
+
+	go ExecuteTask(DownloaderInterval, func() { f.FetchAndLoad() })
+	ExecuteTask(DownloaderInterval, func() { du.Update() })
 }
 
-// TODO: Below needs to be refactored into an executor struct.
-
-func (s *Server) ExecuteTask(interval time.Duration, task func()) {
+func ExecuteTask(interval time.Duration, task func()) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for ; true; <-ticker.C {
 		task()
 	}
-}
-
-func (s *Server) UpdateDiscord() {
-	du := DisplayUpdater{Display: s.Discord, Plotter: s.Ghastly, Store: s.Store, Logger: s.Logger, Location: s.Location}
-	du.Update()
-}
-
-func (s *Server) FetchUploadReadings() {
-	f := Fetcher{Source: s.Dexcom, Store: s.Store, Logger: s.Logger}
-	f.FetchAndLoad()
 }

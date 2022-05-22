@@ -31,12 +31,5 @@ func main() {
 
 	logger.Debug("loaded config file", zap.String("file", configFile))
 
-	s, err := gourgeist.New(config)
-	if err != nil {
-		panic(err)
-	}
-
-	// TODO: Make this cleaner.
-	go s.ExecuteTask(gourgeist.DownloaderInterval, s.FetchUploadReadings)
-	s.ExecuteTask(gourgeist.UpdaterInterval, s.UpdateDiscord)
+	gourgeist.Run(config)
 }
