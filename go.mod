@@ -12,18 +12,18 @@ require (
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/gorilla/schema v1.1.0 // indirect
+	github.com/gorilla/schema v1.2.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
-	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
+	golang.org/x/sys v0.0.0-20211001092434-39dca1131b70 // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/diamondburned/arikawa v1.3.14
+	github.com/diamondburned/arikawa/v3 v3.0.0-rc.6
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
@@ -36,7 +36,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/grpc v1.46.2

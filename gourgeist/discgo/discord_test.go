@@ -4,11 +4,14 @@ import (
 	"iv2/gourgeist/dexcom"
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/diamondburned/arikawa/api"
-	"github.com/diamondburned/arikawa/discord"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -32,11 +35,28 @@ func (suite *DiscordTestSuite) SetupSuite() {
 	if !exist {
 		panic("no token found")
 	}
-	discgo, err := New(token, zap.NewExample(), time.Local)
+	discgo, err := New(token, InteractionCreateHandler, zap.NewExample(), time.Local)
 	if err != nil {
 		panic(err)
 	}
 	suite.discgo = discgo
+
+	var wg sync.WaitGroup
+
+	guilds, err := suite.discgo.Session.Guilds(10)
+	if err != nil {
+		panic(err)
+	}
+
+	// Delete uncleared test guilds.
+	for _, guild := range guilds {
+		if guild.Name == "test" {
+			wg.Add(1)
+			go suite.discgo.Session.DeleteGuild(guild.ID)
+		}
+	}
+
+	wg.Wait()
 }
 
 func (suite *DiscordTestSuite) BeforeTest(_, _ string) {
@@ -83,21 +103,38 @@ func getSimpleMessageData() api.SendMessageData {
 	}
 
 	return api.SendMessageData{
-		Embed: &embed,
-		Files: []api.SendMessageFile{},
+		Embeds: []discord.Embed{embed},
+		Files:  []sendpart.File{},
 	}
 }
 
-func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
+func (suite *DiscordTestSuite) TestNewMainIntegration() {
 	msgData := getSimpleMessageData()
-	assert.NoError(suite.T(), suite.discgo.UpdateMainMessage(msgData), "unable to update main")
+	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
 }
 
 func (suite *DiscordTestSuite) TestGetMainIntegration() {
 	msgData := getSimpleMessageData()
-	assert.NoError(suite.T(), suite.discgo.UpdateMainMessage(msgData), "unable to update main")
+	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
+
 	msg, err := suite.discgo.GetMainMessage()
 	assert.NoError(suite.T(), err, "unable to get main")
 	assert.Len(suite.T(), msg.Embeds, 1, "did not find exactly one embed")
-	assert.EqualValues(suite.T(), *msgData.Embed, msg.Embeds[0], "got different embeds")
+	assert.EqualValues(suite.T(), msgData.Embeds[0], msg.Embeds[0], "got different embeds")
+}
+
+func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
+	msgData := getSimpleMessageData()
+	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
+
+	editData := api.EditMessageData{
+		Content: option.NewNullableString("test"),
+	}
+	assert.NoError(suite.T(), suite.discgo.UpdateMainMessage(editData), "unable to edit main")
+
+	msg, err := suite.discgo.GetMainMessage()
+	assert.NoError(suite.T(), err, "unable to get main")
+	assert.Len(suite.T(), msg.Embeds, 1, "did not find exactly one embed")
+	assert.EqualValues(suite.T(), msgData.Embeds[0], msg.Embeds[0], "got different embeds")
+	assert.EqualValues(suite.T(), editData.Content.Val, msg.Content)
 }

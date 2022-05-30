@@ -54,7 +54,12 @@ func Run(config Config) {
 
 	dexcom := dexcom.New(config.DexcomAccount, config.DexcomPassword, config.Logger)
 
-	discgo, err := discgo.New(config.DiscordToken, config.Logger, loc)
+	discgo, err := discgo.New(
+		config.DiscordToken,
+		discgo.InteractionCreateHandler,
+		config.Logger,
+		loc,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -83,14 +88,17 @@ func Run(config Config) {
 		Logger: config.Logger,
 	}
 
-	go ExecuteTask(DownloaderInterval, func() { f.FetchAndLoad() })
-	ExecuteTask(DownloaderInterval, func() { du.Update() })
+	go ExecuteTask(DownloaderInterval, func() error { return f.FetchAndLoad() }, config.Logger)
+	ExecuteTask(DownloaderInterval, func() error { return du.Update() }, config.Logger)
 }
 
-func ExecuteTask(interval time.Duration, task func()) {
+func ExecuteTask(interval time.Duration, task func() error, logger *zap.Logger) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for ; true; <-ticker.C {
-		task()
+		err := task()
+		if err != nil {
+			logger.Debug("error executing task", zap.Error(err))
+		}
 	}
 }

@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/diamondburned/arikawa/api"
-	"github.com/diamondburned/arikawa/discord"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.uber.org/zap"
 )
 
@@ -41,7 +42,7 @@ func (u DisplayUpdater) Update() error {
 		return err
 	}
 
-	if len(prevMsg.Embeds) > 0 &&
+	if prevMsg != nil && len(prevMsg.Embeds) > 0 &&
 		prevMsg.Embeds[0].Title == trs[0].GetTime().In(u.Location).Format(discgo.TimeFormat) {
 		u.Logger.Debug("skipping display update, up to date", zap.String("date", prevMsg.Embeds[0].Title))
 		return nil
@@ -69,15 +70,15 @@ func (u DisplayUpdater) Update() error {
 		},
 	}
 	msgData := api.SendMessageData{
-		Embed: &embed,
-		Files: []api.SendMessageFile{},
+		Embeds: []discord.Embed{embed},
+		Files:  []sendpart.File{},
 	}
 
 	if fileReader != nil {
 		u.Logger.Debug("adding image to embed", zap.String("name", fr.GetName()))
-		embed.Image = &discord.EmbedImage{URL: "attachment://" + fr.GetName()}
-		msgData.Files = append(msgData.Files, api.SendMessageFile{Name: fr.GetName(), Reader: fileReader})
+		msgData.Embeds[0].Image = &discord.EmbedImage{URL: "attachment://" + fr.GetName()}
+		msgData.Files = append(msgData.Files, sendpart.File{Name: fr.GetName(), Reader: fileReader})
 	}
 
-	return u.Display.UpdateMainMessage(msgData)
+	return u.Display.NewMainMessage(msgData)
 }
