@@ -57,22 +57,24 @@ func New(token string, handler func(*session.Session, *zap.Logger) func(*gateway
 	}, nil
 }
 
-func (d *Discord) Setup(guildID string) error {
+func (d *Discord) Setup(guildID string, registerCommands bool) error {
 	sf, err := discord.ParseSnowflake(guildID)
 	if err != nil {
 		return err
 	}
 	d.gid = discord.GuildID(sf)
 
-	app, err := d.Session.CurrentApplication()
-	if err != nil {
-		return fmt.Errorf("unable to get current application: %w", err)
-	}
-
-	for _, command := range registeredCommands() {
-		_, err = d.Session.CreateGuildCommand(app.ID, d.gid, command)
+	if registerCommands {
+		app, err := d.Session.CurrentApplication()
 		if err != nil {
-			return fmt.Errorf("unable to create guild commands: %w", err)
+			return fmt.Errorf("unable to get current application: %w", err)
+		}
+
+		for _, command := range registeredCommands() {
+			_, err = d.Session.CreateGuildCommand(app.ID, d.gid, command)
+			if err != nil {
+				return fmt.Errorf("unable to create guild commands: %w", err)
+			}
 		}
 	}
 
@@ -107,7 +109,7 @@ func (d *Discord) Setup(guildID string) error {
 func (d *Discord) GetMainMessage() (*discord.Message, error) {
 	msgs, err := d.Session.Messages(d.chid, 10)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get messages: %w", err)
 	}
 	if len(msgs) == 0 {
 		d.Logger.Debug("no main message found")
@@ -121,19 +123,19 @@ func (d *Discord) GetMainMessage() (*discord.Message, error) {
 func (d *Discord) deleteOldMessages(chid discord.ChannelID, limit uint) (bool, error) {
 	msgs, err := d.Session.Messages(d.chid, limit)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("unable to get messages: %w", err)
 	}
 
 	for _, msg := range msgs {
 		err = d.Session.DeleteMessage(d.chid, msg.ID, api.AuditLogReason("clearing"))
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("unable to delete message: %w", err)
 		}
 	}
 
 	msgs, err = d.Session.Messages(d.chid, 1)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("unable to get messages: %w", err)
 	}
 	return len(msgs) == 0, nil
 }

@@ -51,8 +51,11 @@ func InteractionCreateHandler(ses *session.Session, logger *zap.Logger) func(*ga
 }
 
 func handleCommand(data *discord.CommandInteraction, logger *zap.Logger) {
+	logger.Debug("received command", zap.String("cmd", data.Name))
 	switch data.Name {
 	case InsulCommand:
+		return
+	case CarbsCommand:
 		return
 	}
 }

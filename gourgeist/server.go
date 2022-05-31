@@ -63,7 +63,7 @@ func Run(config Config) {
 	if err != nil {
 		panic(err)
 	}
-	err = discgo.Setup(config.DiscordGuild)
+	err = discgo.Setup(config.DiscordGuild, true)
 	if err != nil {
 		panic(err)
 	}

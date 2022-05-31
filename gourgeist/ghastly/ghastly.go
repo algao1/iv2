@@ -2,6 +2,7 @@ package ghastly
 
 import (
 	"context"
+	"fmt"
 	"iv2/gourgeist/dexcom"
 	"iv2/gourgeist/ghastly/proto"
 
@@ -37,7 +38,7 @@ func (c *Client) GenerateDailyPlot(ctx context.Context, trs []dexcom.Transformed
 
 	fr, err := c.Plotter.PlotDaily(ctx, &proto.History{Tps: tps})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to plot daily chart: %w", err)
 	}
 
 	c.Logger.Debug("successfully obtained plot",

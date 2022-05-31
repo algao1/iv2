@@ -65,7 +65,7 @@ func (suite *DiscordTestSuite) BeforeTest(_, _ string) {
 	assert.NoError(suite.T(), err, "unable to create test guild")
 	suite.gid = guild.ID
 
-	err = suite.discgo.Setup(suite.gid.String())
+	err = suite.discgo.Setup(suite.gid.String(), false)
 	assert.NoError(suite.T(), err, "unable to complete setup")
 }
 

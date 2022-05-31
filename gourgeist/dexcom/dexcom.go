@@ -81,7 +81,7 @@ func (c *Client) Readings(ctx context.Context, minutes, maxCount int) ([]*Transf
 	}
 	_, err = c.CreateSession(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to create dexcom session: %w", err)
 	}
 	return c.readings(ctx, minutes, maxCount)
 }
@@ -95,7 +95,7 @@ func (c *Client) CreateSession(ctx context.Context) (string, error) {
 
 	b, err := json.Marshal(lreq)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to marshal login request: %w", err)
 	}
 
 	c.logger.Debug("making login request for sessionID",
@@ -104,13 +104,13 @@ func (c *Client) CreateSession(ctx context.Context) (string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseUrl+"/"+loginEndpoint, bytes.NewBuffer(b))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -146,12 +146,12 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*Transf
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseUrl+"/"+readingsEndpoint+"?"+params.Encode(), nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to create request: %w", err)
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -159,19 +159,15 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*Transf
 
 	err = json.NewDecoder(resp.Body).Decode(&readings)
 	if err != nil {
-		c.logger.Debug("failed to decode readings response")
-		return nil, err
+		return nil, fmt.Errorf("unable to decode readings response: %w", err)
 	}
-
-	c.logger.Debug("received readings from share API",
-		zap.Int("count", len(readings)),
-	)
+	c.logger.Debug("received readings from share API", zap.Int("count", len(readings)))
 
 	trs := make([]*TransformedReading, len(readings))
 	for i, r := range readings {
 		tr, err := transform(r)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to transform glucose readings: %w", err)
 		}
 		trs[i] = tr
 	}
@@ -183,7 +179,7 @@ func transform(r *Reading) (*TransformedReading, error) {
 	parsedTime := strings.Trim(r.WT[4:], "()")
 	unix, err := strconv.Atoi(parsedTime)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to convert to int: %w", err)
 	}
 
 	return &TransformedReading{

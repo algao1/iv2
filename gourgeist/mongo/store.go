@@ -3,6 +3,7 @@ package mongo
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"iv2/gourgeist/dexcom"
 	"time"
@@ -42,7 +43,7 @@ type MongoStore struct {
 func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (*MongoStore, error) {
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to connect to mongo: %w", err)
 	}
 	return &MongoStore{
 		Client: mongoClient,
@@ -64,13 +65,14 @@ func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event T
 		}, bson.M{"$set": event}, options.Update().SetUpsert(true))
 
 	if err != nil {
-		ms.Logger.Debug("failed to insert event",
+		ms.Logger.Debug("unable to insert event",
 			zap.String("collection", collection),
 			zap.Any("event", event),
 			zap.Error(err))
+		return false, fmt.Errorf("unable to insert event: %w", err)
 	}
 
-	return (res.MatchedCount > 0), err
+	return (res.MatchedCount > 0), nil
 }
 
 func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
@@ -93,12 +95,12 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 			},
 		}, findOptions)
 	if err != nil {
-		ms.Logger.Debug("failed to insert event",
+		ms.Logger.Debug("unable to read events",
 			zap.String("collection", collection),
 			zap.Time("start", start),
 			zap.Time("end", end),
 			zap.Error(err))
-		return err
+		return fmt.Errorf("unable to read events: %w", err)
 	}
 
 	return cur.All(ctx, slicePtr)
@@ -111,7 +113,7 @@ func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *dexcom.TransformedRe
 func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]dexcom.TransformedReading, error) {
 	var trs []dexcom.TransformedReading
 	if err := ms.getEventBetween(ctx, glucoseCollection, start, end, &trs); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to read glucose: %w", err)
 	}
 	return trs, nil
 }
@@ -120,18 +122,18 @@ func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, erro
 	db := ms.Client.Database(ms.DBName)
 	bucket, err := gridfs.NewBucket(db)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to create a GridFS bucket: %w", err)
 	}
 
 	oid, err := primitive.ObjectIDFromHex(fid)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to create objectId from hex: %w", err)
 	}
 
 	var buf bytes.Buffer
 	_, err = bucket.DownloadToStream(oid, &buf)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to download to stream: %w", err)
 	}
 
 	return &buf, nil
@@ -141,12 +143,12 @@ func (ms *MongoStore) DeleteFile(ctx context.Context, fid string) error {
 	db := ms.Client.Database(ms.DBName)
 	bucket, err := gridfs.NewBucket(db)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create a GridFS bucket: %w", err)
 	}
 
 	oid, err := primitive.ObjectIDFromHex(fid)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create objectId from hex: %w", err)
 	}
 
 	return bucket.Delete(oid)
