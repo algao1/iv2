@@ -1,44 +1,58 @@
 package discgo
 
 import (
-	"fmt"
-
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"go.uber.org/zap"
 )
 
+const (
+	CarbsCommand = "carbs"
+	InsulCommand = "insul"
+)
+
 func registeredCommands() []api.CreateCommandData {
-	commands := []api.CreateCommandData{}
+	commands := []api.CreateCommandData{
+		{
+			Name:        CarbsCommand,
+			Description: "Record the estimated carbohydrate intake.",
+		},
+		{
+			Name:        InsulCommand,
+			Description: "Record the estimated insulin intake.",
+		},
+	}
 	return commands
 }
 
 func InteractionCreateHandler(ses *session.Session, logger *zap.Logger) func(*gateway.InteractionCreateEvent) {
 	return func(e *gateway.InteractionCreateEvent) {
-		var resp api.InteractionResponse
-		var err error
-
 		switch data := e.Data.(type) {
 		case *discord.CommandInteraction:
-			resp, err = handleCommand(data, logger)
+			handleCommand(data, logger)
 		}
 
-		if err != nil {
-			return
+		resp := api.InteractionResponse{
+			Type: api.MessageInteractionWithSource,
+			Data: &api.InteractionResponseData{Content: option.NewNullableString("test")},
 		}
 
 		if err := ses.RespondInteraction(e.ID, e.Token, resp); err != nil {
+			logger.Debug("unable to send interaction callback", zap.Error(err))
 			return
+		}
+		if err := ses.DeleteInteractionResponse(e.AppID, e.Token); err != nil {
+			logger.Debug("unable to delete interaction response", zap.Error(err))
 		}
 	}
 }
 
-func handleCommand(data *discord.CommandInteraction, logger *zap.Logger) (api.InteractionResponse, error) {
-	var resp api.InteractionResponse
+func handleCommand(data *discord.CommandInteraction, logger *zap.Logger) {
 	switch data.Name {
-	default:
-		return resp, fmt.Errorf("unknown command: %s", data.Name)
+	case InsulCommand:
+		return
 	}
 }

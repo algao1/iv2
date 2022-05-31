@@ -118,9 +118,6 @@ func (d *Discord) GetMainMessage() (*discord.Message, error) {
 	return &msgs[0], nil
 }
 
-// TODO: need to assert main message only contains expected
-// 	messages.
-
 func (d *Discord) deleteOldMessages(chid discord.ChannelID, limit uint) (bool, error) {
 	msgs, err := d.Session.Messages(d.chid, limit)
 	if err != nil {
@@ -128,7 +125,7 @@ func (d *Discord) deleteOldMessages(chid discord.ChannelID, limit uint) (bool, e
 	}
 
 	for _, msg := range msgs {
-		err = d.Session.DeleteMessage(d.chid, msg.ID, api.AuditLogReason(""))
+		err = d.Session.DeleteMessage(d.chid, msg.ID, api.AuditLogReason("clearing"))
 		if err != nil {
 			return false, err
 		}
