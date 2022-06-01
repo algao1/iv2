@@ -18,12 +18,20 @@ import (
 
 const (
 	glucoseCollection = "glucose"
+	insulinCollection = "insulin"
+	carbsCollection   = "carbs"
 	filesCollection   = "fs.files"
 )
 
 type Store interface {
 	WriteGlucose(ctx context.Context, tr *types.TransformedReading) (bool, error)
 	ReadGlucose(ctx context.Context, start, end time.Time) ([]types.TransformedReading, error)
+
+	WriteInsulin(ctx context.Context, in *types.Insulin) (bool, error)
+	ReadInsulin(ctx context.Context, start, end time.Time) ([]types.Insulin, error)
+
+	WriteCarbs(ctx context.Context, c *types.Carbs) (bool, error)
+	ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carbs, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
 	DeleteFile(ctx context.Context, fid string) error
@@ -112,6 +120,30 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 		return nil, fmt.Errorf("unable to read glucose: %w", err)
 	}
 	return trs, nil
+}
+
+func (ms *MongoStore) WriteInsulin(ctx context.Context, in *types.Insulin) (bool, error) {
+	return ms.writeEvent(ctx, insulinCollection, in)
+}
+
+func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]types.Insulin, error) {
+	var ins []types.Insulin
+	if err := ms.getEventBetween(ctx, insulinCollection, start, end, &ins); err != nil {
+		return nil, fmt.Errorf("unable to read insulin: %w", err)
+	}
+	return ins, nil
+}
+
+func (ms *MongoStore) WriteCarbs(ctx context.Context, c *types.Carbs) (bool, error) {
+	return ms.writeEvent(ctx, carbsCollection, c)
+}
+
+func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carbs, error) {
+	var carbs []types.Carbs
+	if err := ms.getEventBetween(ctx, carbsCollection, start, end, &carbs); err != nil {
+		return nil, fmt.Errorf("unable to read carbs: %w", err)
+	}
+	return carbs, nil
 }
 
 func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, error) {

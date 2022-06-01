@@ -62,3 +62,46 @@ func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
 	assert.NoError(suite.T(), err, "unable to read glucose from test db")
 	assert.Len(suite.T(), trs, 1, "did not find exactly one entry")
 }
+
+func (suite *MongoTestSuite) TestReadWriteInsulinIntegration() {
+	ctx := context.Background()
+	times := []time.Time{
+		time.Date(2022, time.May, 15, 1, 30, 0, 0, time.UTC), // Entry.
+		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC),  // Start.
+		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC),  // End.
+	}
+	in := types.Insulin{
+		Time:   times[0],
+		Type:   "testType",
+		Amount: 10,
+	}
+
+	replaced, err := suite.ms.WriteInsulin(ctx, &in)
+	assert.NoError(suite.T(), err, "unable to write insulin to test db")
+	assert.False(suite.T(), replaced, "not unique entry")
+
+	ins, err := suite.ms.ReadInsulin(ctx, times[1], times[2])
+	assert.NoError(suite.T(), err, "unable to read insulin from test db")
+	assert.Len(suite.T(), ins, 1, "did not find exactly one entry")
+}
+
+func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
+	ctx := context.Background()
+	times := []time.Time{
+		time.Date(2022, time.May, 15, 1, 30, 0, 0, time.UTC), // Entry.
+		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC),  // Start.
+		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC),  // End.
+	}
+	carb := types.Carbs{
+		Time:   times[0],
+		Amount: 10,
+	}
+
+	replaced, err := suite.ms.WriteCarbs(ctx, &carb)
+	assert.NoError(suite.T(), err, "unable to write carbs to test db")
+	assert.False(suite.T(), replaced, "not unique entry")
+
+	carbs, err := suite.ms.ReadCarbs(ctx, times[1], times[2])
+	assert.NoError(suite.T(), err, "unable to read insulin from test db")
+	assert.Len(suite.T(), carbs, 1, "did not find exactly one entry")
+}
