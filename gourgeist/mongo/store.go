@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"iv2/gourgeist/dexcom"
+	"iv2/gourgeist/types"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,13 +21,9 @@ const (
 	filesCollection   = "fs.files"
 )
 
-type TimePoint interface {
-	GetTime() time.Time
-}
-
 type Store interface {
-	WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) (bool, error)
-	ReadGlucose(ctx context.Context, start, end time.Time) ([]dexcom.TransformedReading, error)
+	WriteGlucose(ctx context.Context, tr *types.TransformedReading) (bool, error)
+	ReadGlucose(ctx context.Context, start, end time.Time) ([]types.TransformedReading, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
 	DeleteFile(ctx context.Context, fid string) error
@@ -52,7 +48,7 @@ func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (*MongoSto
 	}, nil
 }
 
-func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event TimePoint) (bool, error) {
+func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event types.TimePoint) (bool, error) {
 	ms.Logger.Debug("inserting event",
 		zap.String("collection", collection),
 		zap.Any("event", event))
@@ -106,12 +102,12 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 	return cur.All(ctx, slicePtr)
 }
 
-func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *dexcom.TransformedReading) (bool, error) {
+func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *types.TransformedReading) (bool, error) {
 	return ms.writeEvent(ctx, glucoseCollection, tr)
 }
 
-func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]dexcom.TransformedReading, error) {
-	var trs []dexcom.TransformedReading
+func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]types.TransformedReading, error) {
+	var trs []types.TransformedReading
 	if err := ms.getEventBetween(ctx, glucoseCollection, start, end, &trs); err != nil {
 		return nil, fmt.Errorf("unable to read glucose: %w", err)
 	}

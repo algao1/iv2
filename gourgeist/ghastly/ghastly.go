@@ -3,8 +3,8 @@ package ghastly
 import (
 	"context"
 	"fmt"
-	"iv2/gourgeist/dexcom"
 	"iv2/gourgeist/ghastly/proto"
+	"iv2/gourgeist/types"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -17,7 +17,7 @@ type Client struct {
 }
 
 type Plotter interface {
-	GenerateDailyPlot(ctx context.Context, trs []dexcom.TransformedReading) (*proto.FileResponse, error)
+	GenerateDailyPlot(ctx context.Context, trs []types.TransformedReading) (*proto.FileResponse, error)
 }
 
 func New(conn *grpc.ClientConn, logger *zap.Logger) *Client {
@@ -27,7 +27,7 @@ func New(conn *grpc.ClientConn, logger *zap.Logger) *Client {
 	}
 }
 
-func (c *Client) GenerateDailyPlot(ctx context.Context, trs []dexcom.TransformedReading) (*proto.FileResponse, error) {
+func (c *Client) GenerateDailyPlot(ctx context.Context, trs []types.TransformedReading) (*proto.FileResponse, error) {
 	tps := make([]*proto.TimePoint, len(trs))
 	for i, tr := range trs {
 		tps[i] = &proto.TimePoint{

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"iv2/gourgeist/types"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -36,7 +37,7 @@ type Client struct {
 }
 
 type Source interface {
-	Readings(ctx context.Context, minutes, maxCount int) ([]*TransformedReading, error)
+	Readings(ctx context.Context, minutes, maxCount int) ([]*types.TransformedReading, error)
 }
 
 type LoginRequest struct {
@@ -53,16 +54,6 @@ type Reading struct {
 	Trend       string  `json:"Trend"`
 }
 
-type TransformedReading struct {
-	Time  time.Time `bson:"time"`
-	Mmol  float64   `bson:"mmol"`
-	Trend string    `bson:"trend"`
-}
-
-func (tr *TransformedReading) GetTime() time.Time {
-	return tr.Time
-}
-
 func New(accountName, password string, logger *zap.Logger) *Client {
 	return &Client{
 		client:      &http.Client{},
@@ -74,7 +65,7 @@ func New(accountName, password string, logger *zap.Logger) *Client {
 
 // Readings fetches readings from Dexcom's Share API, and applies a transformation.
 // Automatically creates a new session when it expires.
-func (c *Client) Readings(ctx context.Context, minutes, maxCount int) ([]*TransformedReading, error) {
+func (c *Client) Readings(ctx context.Context, minutes, maxCount int) ([]*types.TransformedReading, error) {
 	trs, err := c.readings(ctx, minutes, maxCount)
 	if err == nil {
 		return trs, nil
@@ -127,7 +118,7 @@ func (c *Client) CreateSession(ctx context.Context) (string, error) {
 	return c.sessionID, nil
 }
 
-func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*TransformedReading, error) {
+func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*types.TransformedReading, error) {
 	if minutes > MinuteLimit || maxCount > CountLimit {
 		return nil, fmt.Errorf("window too large: minutes %d, maxCount %d", minutes, maxCount)
 	}
@@ -163,7 +154,7 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*Transf
 	}
 	c.logger.Debug("received readings from share API", zap.Int("count", len(readings)))
 
-	trs := make([]*TransformedReading, len(readings))
+	trs := make([]*types.TransformedReading, len(readings))
 	for i, r := range readings {
 		tr, err := transform(r)
 		if err != nil {
@@ -175,14 +166,14 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*Transf
 	return trs, nil
 }
 
-func transform(r *Reading) (*TransformedReading, error) {
+func transform(r *Reading) (*types.TransformedReading, error) {
 	parsedTime := strings.Trim(r.WT[4:], "()")
 	unix, err := strconv.Atoi(parsedTime)
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert to int: %w", err)
 	}
 
-	return &TransformedReading{
+	return &types.TransformedReading{
 		Time:  time.Unix(int64(unix/1000), 0),
 		Mmol:  r.Value / 18,
 		Trend: r.Trend,

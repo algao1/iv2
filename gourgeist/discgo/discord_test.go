@@ -1,7 +1,7 @@
 package discgo
 
 import (
-	"iv2/gourgeist/dexcom"
+	"iv2/gourgeist/types"
 	"os"
 	"strconv"
 	"sync"
@@ -93,7 +93,7 @@ func (suite *DiscordTestSuite) TestSetupIntegration() {
 }
 
 func getSimpleMessageData() api.SendMessageData {
-	tr := dexcom.TransformedReading{
+	tr := types.TransformedReading{
 		Time:  time.Date(2022, time.May, 15, 1, 30, 0, 0, time.UTC),
 		Mmol:  6.5,
 		Trend: "Flat",

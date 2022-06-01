@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	"iv2/gourgeist/dexcom"
+	"iv2/gourgeist/types"
 	"testing"
 	"time"
 
@@ -48,7 +48,7 @@ func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
 		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC),  // Start.
 		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC),  // End.
 	}
-	tr := dexcom.TransformedReading{
+	tr := types.TransformedReading{
 		Time:  times[0],
 		Mmol:  6.5,
 		Trend: "Flat",
