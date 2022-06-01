@@ -56,14 +56,16 @@ func Run(config Config) {
 
 	discgo, err := discgo.New(
 		config.DiscordToken,
-		discgo.InteractionCreateHandler,
 		config.Logger,
 		loc,
 	)
 	if err != nil {
 		panic(err)
 	}
-	err = discgo.Setup(config.DiscordGuild, true)
+
+	ch := CommandHandler{Display: discgo, Store: ms, Logger: config.Logger}
+
+	err = discgo.Setup(config.DiscordGuild, true, ch.InteractionCreateHandler())
 	if err != nil {
 		panic(err)
 	}
@@ -74,7 +76,7 @@ func Run(config Config) {
 	}
 	gh := ghastly.New(conn, config.Logger)
 
-	du := DisplayUpdater{
+	pu := PlotUpdater{
 		Display:  discgo,
 		Plotter:  gh,
 		Store:    ms,
@@ -89,7 +91,7 @@ func Run(config Config) {
 	}
 
 	go ExecuteTask(DownloaderInterval, func() error { return f.FetchAndLoad() }, config.Logger)
-	ExecuteTask(DownloaderInterval, func() error { return du.Update() }, config.Logger)
+	ExecuteTask(DownloaderInterval, func() error { return pu.Update() }, config.Logger)
 }
 
 func ExecuteTask(interval time.Duration, task func() error, logger *zap.Logger) {

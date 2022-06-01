@@ -30,14 +30,13 @@ type Discord struct {
 type Display interface {
 	GetMainMessage() (*discord.Message, error)
 	NewMainMessage(msgData api.SendMessageData) error
+
+	// TODO: Eventually separate these out to their own interfaces, too much clutter currently.
+	RespondInteraction(id discord.InteractionID, token string, resp api.InteractionResponse) error
+	DeleteInteractionResponse(appID discord.AppID, token string) error
 }
 
-type Handler func(*session.Session, *zap.Logger) func(*gateway.InteractionCreateEvent)
-
-// TODO: Not really sure why I made New() and Setup() separate,
-//	may change later.
-
-func New(token string, handler func(*session.Session, *zap.Logger) func(*gateway.InteractionCreateEvent), logger *zap.Logger, loc *time.Location) (*Discord, error) {
+func New(token string, logger *zap.Logger, loc *time.Location) (*Discord, error) {
 	ses := session.NewWithIntents("Bot "+token, gateway.IntentGuildMessages)
 
 	ses.AddIntents(gateway.IntentGuilds)
@@ -48,8 +47,6 @@ func New(token string, handler func(*session.Session, *zap.Logger) func(*gateway
 		return nil, fmt.Errorf("unable to open session: %w", err)
 	}
 
-	ses.AddHandler(handler(ses, logger))
-
 	return &Discord{
 		Session:  ses,
 		Logger:   logger,
@@ -57,7 +54,9 @@ func New(token string, handler func(*session.Session, *zap.Logger) func(*gateway
 	}, nil
 }
 
-func (d *Discord) Setup(guildID string, registerCommands bool) error {
+// TODO: Function signature is overloaded, need addressing.
+
+func (d *Discord) Setup(guildID string, registerCommands bool, handlers ...interface{}) error {
 	sf, err := discord.ParseSnowflake(guildID)
 	if err != nil {
 		return err
@@ -76,6 +75,10 @@ func (d *Discord) Setup(guildID string, registerCommands bool) error {
 				return fmt.Errorf("unable to create guild commands: %w", err)
 			}
 		}
+	}
+
+	for _, handler := range handlers {
+		d.Session.AddHandler(handler)
 	}
 
 	channels, err := d.Session.Channels(d.gid)
@@ -181,4 +184,12 @@ func (d *Discord) UpdateMainMessage(data api.EditMessageData) error {
 	d.Logger.Debug("updated main message", zap.Any("msg", *msg))
 
 	return nil
+}
+
+func (d *Discord) RespondInteraction(id discord.InteractionID, token string, resp api.InteractionResponse) error {
+	return d.Session.RespondInteraction(id, token, resp)
+}
+
+func (d *Discord) DeleteInteractionResponse(appID discord.AppID, token string) error {
+	return d.Session.DeleteInteractionResponse(appID, token)
 }

@@ -35,7 +35,11 @@ func (suite *DiscordTestSuite) SetupSuite() {
 	if !exist {
 		panic("no token found")
 	}
-	discgo, err := New(token, InteractionCreateHandler, zap.NewExample(), time.Local)
+	discgo, err := New(
+		token,
+		zap.NewExample(),
+		time.Local,
+	)
 	if err != nil {
 		panic(err)
 	}
