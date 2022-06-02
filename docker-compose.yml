@@ -23,7 +23,7 @@ services:
     container_name: mongo
     volumes:
       - type: bind
-        source: ./data
+        source: .data
         target: /data/db
     restart: always
     ports:

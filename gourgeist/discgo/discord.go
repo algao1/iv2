@@ -30,6 +30,7 @@ type Discord struct {
 type Display interface {
 	GetMainMessage() (*discord.Message, error)
 	NewMainMessage(msgData api.SendMessageData) error
+	UpdateMainMessage(data api.EditMessageData) error
 
 	// TODO: Eventually separate these out to their own interfaces, too much clutter currently.
 	RespondInteraction(id discord.InteractionID, token string, resp api.InteractionResponse) error
