@@ -39,7 +39,7 @@ func (pu PlotUpdater) Update() error {
 
 	prevMsg, err := pu.Display.GetMainMessage()
 	if err != nil {
-		return err
+		pu.Logger.Debug("unable to get main message", zap.Error(err))
 	}
 
 	if prevMsg != nil && len(prevMsg.Embeds) > 0 &&
@@ -69,6 +69,14 @@ func (pu PlotUpdater) Update() error {
 			{Name: "Current", Value: strconv.FormatFloat(tr.Mmol, 'f', 2, 64)},
 		},
 	}
+
+	if prevMsg != nil && len(prevMsg.Embeds) > 0 {
+		desc, err := newDesc(prevMsg.Embeds[0].Description, pu.Location)
+		if err == nil {
+			embed.Description = desc
+		}
+	}
+
 	msgData := api.SendMessageData{
 		Embeds: []discord.Embed{embed},
 		Files:  []sendpart.File{},

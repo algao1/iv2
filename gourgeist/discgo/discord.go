@@ -116,8 +116,7 @@ func (d *Discord) GetMainMessage() (*discord.Message, error) {
 		return nil, fmt.Errorf("unable to get messages: %w", err)
 	}
 	if len(msgs) == 0 {
-		d.Logger.Debug("no main message found")
-		return nil, nil
+		return nil, fmt.Errorf("no main message found")
 	}
 
 	d.Logger.Debug("main message found", zap.Any("msg", msgs[0]))

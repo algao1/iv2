@@ -63,7 +63,7 @@ func Run(config Config) {
 		panic(err)
 	}
 
-	ch := CommandHandler{Display: discgo, Store: ms, Logger: config.Logger}
+	ch := CommandHandler{Display: discgo, Store: ms, Logger: config.Logger, Location: loc}
 
 	err = discgo.Setup(config.DiscordGuild, true, ch.InteractionCreateHandler())
 	if err != nil {
