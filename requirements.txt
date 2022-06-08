@@ -1,6 +1,7 @@
 grpcio==1.42.0
+loguru==0.5.3
 matplotlib==3.5.1
 protobuf==3.20.1
-pyyaml==6.0
 pymongo==3.12.0
+pyyaml==6.0
 seaborn==0.11.2

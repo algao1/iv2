@@ -1,4 +1,6 @@
 import gridfs
+
+from loguru import logger
 from pymongo import MongoClient
 
 

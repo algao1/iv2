@@ -3,20 +3,21 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as md
 import seaborn as sns
 
-from pytz import timezone
 from datetime import datetime
 from ghastly.proto.ghastly_pb2 import FileResponse
 from ghastly.proto.ghastly_pb2_grpc import PlotterServicer as ps
 from io import BytesIO
+from loguru import logger
+from pytz import timezone
 
 from store import Store
 
 sns.set_theme(style="darkgrid")
 
 # TODO:
-# - add logging
-# - restructure code
 # - add unit tests
+# - add type hints
+# - restructure code
 
 
 class PlotterServicer(ps):
@@ -24,6 +25,8 @@ class PlotterServicer(ps):
         self.store = Store(uri)
 
     def PlotDaily(self, request, context):
+        logger.debug("got request to generate daily plot")
+
         eastern = timezone("US/Eastern")
         xs = [
             eastern.localize(
@@ -33,8 +36,8 @@ class PlotterServicer(ps):
         ]
         ys = [tp.value for tp in request.tps]
         fname = "daily-" + xs[-1].strftime("%m%d%Y-%H%M%S-%z") + ".png"
-        print(fname)
         iid = self.store.store_image(plot(xs, ys), fname)
+
         return FileResponse(id=f"{iid}", name=fname)
 
 
