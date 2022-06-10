@@ -81,7 +81,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 	}
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
-	_, err = ch.Store.WriteCarbs(context.Background(), &types.Carbs{
+	_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
 		Time:   data.ID.Time(),
 		Amount: float64(amount),
 	})

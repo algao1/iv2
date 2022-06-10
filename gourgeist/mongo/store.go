@@ -30,8 +30,8 @@ type Store interface {
 	WriteInsulin(ctx context.Context, in *types.Insulin) (bool, error)
 	ReadInsulin(ctx context.Context, start, end time.Time) ([]types.Insulin, error)
 
-	WriteCarbs(ctx context.Context, c *types.Carbs) (bool, error)
-	ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carbs, error)
+	WriteCarbs(ctx context.Context, c *types.Carb) (bool, error)
+	ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carb, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
 	DeleteFile(ctx context.Context, fid string) error
@@ -134,12 +134,12 @@ func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]
 	return ins, nil
 }
 
-func (ms *MongoStore) WriteCarbs(ctx context.Context, c *types.Carbs) (bool, error) {
+func (ms *MongoStore) WriteCarbs(ctx context.Context, c *types.Carb) (bool, error) {
 	return ms.writeEvent(ctx, carbsCollection, c)
 }
 
-func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carbs, error) {
-	var carbs []types.Carbs
+func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carb, error) {
+	var carbs []types.Carb
 	if err := ms.getEventBetween(ctx, carbsCollection, start, end, &carbs); err != nil {
 		return nil, fmt.Errorf("unable to read carbs: %w", err)
 	}

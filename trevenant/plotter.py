@@ -30,11 +30,11 @@ class PlotterServicer(ps):
         eastern = timezone("US/Eastern")
         xs = [
             eastern.localize(
-                datetime.fromtimestamp(tp.time.seconds + tp.time.nanos / 1e9)
+                datetime.fromtimestamp(glucose.time.seconds + glucose.time.nanos / 1e9)
             )
-            for tp in request.tps
+            for glucose in request.glucose
         ]
-        ys = [tp.value for tp in request.tps]
+        ys = [glucose.value for glucose in request.glucose]
         fname = "daily-" + xs[-1].strftime("%m%d%Y-%H%M%S-%z") + ".png"
         iid = self.store.store_image(plot(xs, ys), fname)
 

@@ -26,11 +26,11 @@ func (in *Insulin) GetTime() time.Time {
 	return in.Time
 }
 
-type Carbs struct {
+type Carb struct {
 	Time   time.Time `bson:"time"`
 	Amount float64   `bson:"amount"`
 }
 
-func (c *Carbs) GetTime() time.Time {
+func (c *Carb) GetTime() time.Time {
 	return c.Time
 }

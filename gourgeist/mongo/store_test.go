@@ -92,7 +92,7 @@ func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
 		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC),  // Start.
 		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC),  // End.
 	}
-	carb := types.Carbs{
+	carb := types.Carb{
 		Time:   times[0],
 		Amount: 10,
 	}

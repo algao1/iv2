@@ -28,15 +28,15 @@ func New(conn *grpc.ClientConn, logger *zap.Logger) *Client {
 }
 
 func (c *Client) GenerateDailyPlot(ctx context.Context, trs []types.TransformedReading) (*proto.FileResponse, error) {
-	tps := make([]*proto.TimePoint, len(trs))
+	glucose := make([]*proto.Glucose, len(trs))
 	for i, tr := range trs {
-		tps[i] = &proto.TimePoint{
+		glucose[i] = &proto.Glucose{
 			Time:  timestamppb.New(tr.Time),
 			Value: tr.Mmol,
 		}
 	}
 
-	fr, err := c.Plotter.PlotDaily(ctx, &proto.History{Tps: tps})
+	fr, err := c.Plotter.PlotDaily(ctx, &proto.History{Glucose: glucose})
 	if err != nil {
 		return nil, fmt.Errorf("unable to plot daily chart: %w", err)
 	}

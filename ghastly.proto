@@ -9,12 +9,26 @@ service Plotter {
 }
 
 message History {
-  repeated TimePoint tps = 1;
+  repeated Glucose glucose = 1;
+  repeated Carb carbs = 2;
+  repeated Insulin insulin = 3;
 }
 
-message TimePoint {
+message Glucose {
   google.protobuf.Timestamp time = 1;
   double value = 2;
+}
+
+message Carb {
+  google.protobuf.Timestamp time = 1;
+  double value = 2;
+  string type = 3;
+}
+
+message Insulin {
+  google.protobuf.Timestamp time = 1;
+  double value = 2;
+  string type = 3;
 }
 
 message FileResponse {
