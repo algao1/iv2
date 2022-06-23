@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	glucoseCollection = "glucose"
-	insulinCollection = "insulin"
-	carbsCollection   = "carbs"
-	filesCollection   = "fs.files"
+	glucoseCollection  = "glucose"
+	insulinCollection  = "insulin"
+	carbsCollection    = "carbs"
+	cmdEventCollection = "cmdEvents"
+	filesCollection    = "fs.files"
 )
 
 type Store interface {
@@ -32,6 +33,9 @@ type Store interface {
 
 	WriteCarbs(ctx context.Context, c *types.Carb) (bool, error)
 	ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carb, error)
+
+	WriteCmdEvent(ctx context.Context, cmd *types.CommandEvent) (bool, error)
+	ReadCmdEvents(ctx context.Context, start, end time.Time) ([]types.CommandEvent, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
 	DeleteFile(ctx context.Context, fid string) error
@@ -144,6 +148,18 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]ty
 		return nil, fmt.Errorf("unable to read carbs: %w", err)
 	}
 	return carbs, nil
+}
+
+func (ms *MongoStore) WriteCmdEvent(ctx context.Context, cmd *types.CommandEvent) (bool, error) {
+	return ms.writeEvent(ctx, cmdEventCollection, cmd)
+}
+
+func (ms *MongoStore) ReadCmdEvents(ctx context.Context, start, end time.Time) ([]types.CommandEvent, error) {
+	var events []types.CommandEvent
+	if err := ms.getEventBetween(ctx, cmdEventCollection, start, end, &events); err != nil {
+		return nil, fmt.Errorf("unable to read command events: %w", err)
+	}
+	return events, nil
 }
 
 func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, error) {

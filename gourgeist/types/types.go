@@ -34,3 +34,12 @@ type Carb struct {
 func (c *Carb) GetTime() time.Time {
 	return c.Time
 }
+
+type CommandEvent struct {
+	Time      time.Time `bson:"time"`
+	CmdString string    `bson:"cmdString"`
+}
+
+func (cmd *CommandEvent) GetTime() time.Time {
+	return cmd.Time
+}

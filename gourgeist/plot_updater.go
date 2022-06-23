@@ -42,7 +42,7 @@ func (pu PlotUpdater) Update() error {
 	}
 
 	if prevMsg != nil && len(prevMsg.Embeds) > 0 &&
-		prevMsg.Embeds[0].Title == pd.Glucose[0].GetTime().In(pu.Location).Format(discgo.TimeFormat) {
+		prevMsg.Embeds[0].Title == pd.Glucose[len(pd.Glucose)-1].GetTime().In(pu.Location).Format(discgo.TimeFormat) {
 		pu.Logger.Debug("skipping display update, up to date", zap.String("date", prevMsg.Embeds[0].Title))
 		return nil
 	}
@@ -69,11 +69,9 @@ func (pu PlotUpdater) Update() error {
 		},
 	}
 
-	if prevMsg != nil && len(prevMsg.Embeds) > 0 {
-		desc, err := newDesc(prevMsg.Embeds[0].Description, pu.Location)
-		if err == nil {
-			embed.Description = desc
-		}
+	desc, err := newDescription(pu.Store, pu.Location)
+	if err == nil {
+		embed.Description = desc
 	}
 
 	msgData := api.SendMessageData{

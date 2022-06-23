@@ -6,7 +6,6 @@ import (
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/mongo"
 	"iv2/gourgeist/types"
-	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -17,7 +16,7 @@ import (
 )
 
 const (
-	CmdTimeFormat  = "2006-01-02 03:04 PM -0700"
+	CmdTimeFormat  = "01-02 03:04 PM"
 	ExpireDuration = 2 * time.Hour
 	LogLimit       = 5
 )
@@ -35,6 +34,14 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 		var err error
 		switch data := e.Data.(type) {
 		case *discord.CommandInteraction:
+			cmdString := data.Name
+			for _, opt := range data.Options {
+				cmdString += fmt.Sprintf(" %s %s", opt.Name, opt.String())
+			}
+			ch.Store.WriteCmdEvent(context.Background(), &types.CommandEvent{
+				Time:      time.Now().In(ch.Location),
+				CmdString: cmdString,
+			})
 			err = ch.handleCommand(data)
 		}
 
@@ -57,8 +64,6 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 		}
 	}
 }
-
-// TODO: Update storing history in discord msg to into mongo collection.
 
 func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error {
 	ch.Logger.Debug("received command", zap.String("cmd", data.Name))
@@ -91,7 +96,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 		return fmt.Errorf("unable to save carbs: %w", err)
 	}
 
-	err = ch.updateWithEvent(oldMessage, data)
+	err = ch.updateWithEvent(oldMessage)
 	if err != nil {
 		return fmt.Errorf("unable to complete insul command: %w", err)
 	}
@@ -117,7 +122,7 @@ func (ch *CommandHandler) handleInsul(data *discord.CommandInteraction) error {
 		return fmt.Errorf("unable to save insulin: %w", err)
 	}
 
-	err = ch.updateWithEvent(oldMessage, data)
+	err = ch.updateWithEvent(oldMessage)
 	if err != nil {
 		return fmt.Errorf("unable to complete insul command: %w", err)
 	}
@@ -125,23 +130,12 @@ func (ch *CommandHandler) handleInsul(data *discord.CommandInteraction) error {
 	return nil
 }
 
-func (ch *CommandHandler) updateWithEvent(oldMessage *discord.Message, data *discord.CommandInteraction) error {
-	if len(oldMessage.Embeds) > 0 {
-		cl := CommandLog{
-			Time: time.Now(),
-			Log:  data.Name,
-		}
-		for _, opt := range data.Options {
-			cl.Log += fmt.Sprintf(" %s %s", opt.Name, opt.Value.String())
-		}
-
-		desc, err := newDesc(oldMessage.Embeds[0].Description, ch.Location, cl)
-		if err != nil {
-			ch.Logger.Debug("unable to generate new desc", zap.Error(err))
-		} else {
-			oldMessage.Embeds[0].Description = desc
-		}
+func (ch *CommandHandler) updateWithEvent(oldMessage *discord.Message) error {
+	desc, err := newDescription(ch.Store, ch.Location)
+	if err != nil {
+		ch.Logger.Debug("unable to generate new description", zap.Error(err))
 	}
+	oldMessage.Embeds[0].Description = desc
 
 	return ch.Display.UpdateMainMessage(api.EditMessageData{
 		Embeds:      &oldMessage.Embeds,
@@ -149,66 +143,26 @@ func (ch *CommandHandler) updateWithEvent(oldMessage *discord.Message, data *dis
 	})
 }
 
-type CommandLog struct {
-	Time time.Time
-	Log  string
-}
+func newDescription(s mongo.Store, loc *time.Location) (string, error) {
+	end := time.Now().In(loc)
+	start := end.Add(-ExpireDuration)
 
-func newDesc(oldDesc string, loc *time.Location, logs ...CommandLog) (string, error) {
-	oldLogs, err := descToLogs(oldDesc, loc)
+	events, err := s.ReadCmdEvents(context.Background(), start, end)
 	if err != nil {
-		return "", fmt.Errorf("unable to convert desc to logs: %w", err)
-	}
-	oldLogs = append(oldLogs, logs...)
-	if len(oldLogs) > LogLimit {
-		oldLogs = oldLogs[len(oldLogs)-LogLimit:]
+		return "", err
 	}
 
-	newLogs := make([]CommandLog, 0)
-	for _, log := range oldLogs {
-		if log.Time.Add(ExpireDuration).After(time.Now()) {
-			newLogs = append(newLogs, log)
-		}
-	}
-	return logsToDesc(newLogs, loc), nil
-}
-
-func logsToDesc(logs []CommandLog, loc *time.Location) string {
-	if len(logs) == 0 {
-		return ""
+	if len(events) == 0 {
+		return "", nil
+	} else if len(events) > LogLimit {
+		events = events[len(events)-LogLimit:]
 	}
 
 	desc := "```"
-	for i, log := range logs {
-		desc += log.Time.In(loc).Format(CmdTimeFormat) + " | " + log.Log
-		if i != len(logs)-1 {
-			desc += "\n"
-		}
+	for _, event := range events {
+		desc += fmt.Sprintf("%s %s \n", event.Time.Format(CmdTimeFormat), event.CmdString)
 	}
 	desc += "```"
-	return desc
-}
 
-func descToLogs(desc string, loc *time.Location) ([]CommandLog, error) {
-	logs := make([]CommandLog, 0)
-	if len(desc) == 0 {
-		return nil, nil
-	}
-
-	desc = strings.ReplaceAll(desc, "`", "")
-	lines := strings.Split(desc, "\n")
-	for _, line := range lines {
-		split := strings.Split(line, "|")
-		if len(split) != 2 {
-			return nil, fmt.Errorf("invalid format")
-		}
-
-		t, err := time.Parse(CmdTimeFormat, strings.TrimSpace(split[0]))
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse time: %w", err)
-		}
-		logs = append(logs, CommandLog{Time: t, Log: strings.TrimSpace(split[1])})
-	}
-
-	return logs, nil
+	return desc, nil
 }
