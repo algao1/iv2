@@ -7,13 +7,15 @@ from ghastly.proto.ghastly_pb2_grpc import PlotterServicer as ps
 from loguru import logger
 from pytz import timezone
 
+from modules.store import Store
+
 # TODO:
 # - add unit tests
 # - add type hints
 
 
 class PlotterServicer(ps):
-    def __init__(self, store) -> None:
+    def __init__(self, store: Store) -> None:
         self.store = store
         self.tz = timezone("US/Eastern")
 
@@ -30,7 +32,7 @@ class PlotterServicer(ps):
         iid = self.store.store_image(self.plot(gxs, gys, cxs, cys, ixs, iys), fname)
         return FileResponse(id=f"{iid}", name=fname)
 
-    def processTimePoints(self, tps):
+    def processTimePoints(self, tps: list):
         xs = [
             self.tz.localize(
                 datetime.fromtimestamp(tp.time.seconds + tp.time.nanos / 1e9)
@@ -41,13 +43,19 @@ class PlotterServicer(ps):
         return xs, ys
 
     # TODO: Make this better.
-    def interpolateMarker(self, gxs, gys, mxs, above=True):
+    def interpolateMarker(
+        self,
+        gxs: list[datetime],
+        gys: list[float],
+        mxs: list[datetime],
+        above: bool = True,
+    ):
         res = []
-        offset = (max(gys) - min(gys)) / 25
+        offset = (max(gys) - min(gys)) / 10
         if not above:
             offset *= -1
 
-        prev_x, prev_y = 0, 0
+        prev_x, prev_y = gxs[0], 0
         i = 0
 
         for mx in mxs:
@@ -59,13 +67,21 @@ class PlotterServicer(ps):
             if i == 0:
                 rel_y = gys[i]
             else:
-                rel_x = (mx - prev_x) / (gxs[i] - prev_x) if i < len(gxs) else gxs[-1]
+                rel_x = (mx - prev_x) / (gxs[i] - prev_x) if i < len(gxs) else 1
                 rel_y = prev_y + rel_x * (gys[i] - prev_y) if i < len(gxs) else gys[-1]
             res.append(rel_y + offset)
 
         return res
 
-    def plot(self, gxs, gys, cxs, cys, ixs, iys):
+    def plot(
+        self,
+        gxs: list[datetime],
+        gys: list[float],
+        cxs: list[datetime],
+        cys: list[float],
+        ixs: list[datetime],
+        iys: list[float],
+    ):
         y_lim = max(gys) + 1
 
         fig = go.Figure()
