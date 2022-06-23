@@ -82,7 +82,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
 	_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
-		Time:   data.ID.Time(),
+		Time:   time.Now().In(ch.Location),
 		Amount: float64(amount),
 	})
 	if err != nil {
@@ -108,7 +108,7 @@ func (ch *CommandHandler) handleInsul(data *discord.CommandInteraction) error {
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
 	_, err = ch.Store.WriteInsulin(context.Background(), &types.Insulin{
-		Time:   data.ID.Time(),
+		Time:   time.Now().In(ch.Location),
 		Amount: units,
 	})
 	if err != nil {

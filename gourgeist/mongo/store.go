@@ -87,7 +87,7 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 	)
 
 	findOptions := options.Find()
-	findOptions.SetSort(bson.D{primitive.E{Key: "time", Value: -1}})
+	findOptions.SetSort(bson.D{primitive.E{Key: "time", Value: 1}})
 
 	cur, err := ms.Client.
 		Database(ms.DBName).
