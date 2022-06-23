@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	CarbsCommand = "carbs"
-	InsulCommand = "insul"
+	CarbsCommand   = "carbs"
+	InsulinCommand = "insulin"
 )
 
 func registeredCommands() []api.CreateCommandData {
@@ -26,7 +26,7 @@ func registeredCommands() []api.CreateCommandData {
 			},
 		},
 		{
-			Name:        InsulCommand,
+			Name:        InsulinCommand,
 			Description: "Record the estimated insulin intake.",
 			Options: discord.CommandOptions{
 				&discord.IntegerOption{

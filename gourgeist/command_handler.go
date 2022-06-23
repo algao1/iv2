@@ -17,7 +17,7 @@ import (
 
 const (
 	CmdTimeFormat  = "01-02 03:04 PM"
-	ExpireDuration = 2 * time.Hour
+	ExpireDuration = 8 * time.Hour
 	LogLimit       = 5
 )
 
@@ -71,8 +71,8 @@ func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error 
 	switch data.Name {
 	case discgo.CarbsCommand:
 		return ch.handleCarbs(data)
-	case discgo.InsulCommand:
-		return ch.handleInsul(data)
+	case discgo.InsulinCommand:
+		return ch.handleInsulin(data)
 	default:
 		return fmt.Errorf("received unknown command: %s", data.Name)
 	}
@@ -104,7 +104,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 	return nil
 }
 
-func (ch *CommandHandler) handleInsul(data *discord.CommandInteraction) error {
+func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error {
 	units, _ := data.Options[0].FloatValue()
 	ch.Logger.Debug("insulin", zap.Float64("units", units))
 
