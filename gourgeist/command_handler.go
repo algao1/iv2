@@ -58,6 +58,8 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 	}
 }
 
+// TODO: Update storing history in discord msg to into mongo collection.
+
 func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error {
 	ch.Logger.Debug("received command", zap.String("cmd", data.Name))
 

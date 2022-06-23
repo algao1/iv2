@@ -43,8 +43,7 @@ func New(token string, logger *zap.Logger, loc *time.Location) (*Discord, error)
 	ses.AddIntents(gateway.IntentGuilds)
 	ses.AddIntents(gateway.IntentGuildMessages)
 
-	err := ses.Open(context.Background())
-	if err != nil {
+	if err := ses.Open(context.Background()); err != nil {
 		return nil, fmt.Errorf("unable to open session: %w", err)
 	}
 
@@ -71,8 +70,7 @@ func (d *Discord) Setup(guildID string, registerCommands bool, handlers ...inter
 		}
 
 		for _, command := range registeredCommands() {
-			_, err = d.Session.CreateGuildCommand(app.ID, d.gid, command)
-			if err != nil {
+			if _, err = d.Session.CreateGuildCommand(app.ID, d.gid, command); err != nil {
 				return fmt.Errorf("unable to create guild commands: %w", err)
 			}
 		}
@@ -130,8 +128,7 @@ func (d *Discord) deleteOldMessages(chid discord.ChannelID, limit uint) (bool, e
 	}
 
 	for _, msg := range msgs {
-		err = d.Session.DeleteMessage(d.chid, msg.ID, api.AuditLogReason("clearing"))
-		if err != nil {
+		if err = d.Session.DeleteMessage(d.chid, msg.ID, api.AuditLogReason("clearing")); err != nil {
 			return false, fmt.Errorf("unable to delete message: %w", err)
 		}
 	}
@@ -148,8 +145,7 @@ func (d *Discord) NewMainMessage(msgData api.SendMessageData) error {
 	var err error
 
 	for !clearedAll {
-		clearedAll, err = d.deleteOldMessages(d.chid, 100)
-		if err != nil {
+		if clearedAll, err = d.deleteOldMessages(d.chid, 100); err != nil {
 			return err
 		}
 	}

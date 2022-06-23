@@ -47,11 +47,9 @@ type LoginRequest struct {
 }
 
 type Reading struct {
-	WT          string  `json:"WT"` // Not quite sure what this is.
-	SystemTime  string  `json:"ST"`
-	DisplayTime string  `json:"DT"`
-	Value       float64 `json:"Value"`
-	Trend       string  `json:"Trend"`
+	WT    string  `json:"WT"` // Not sure what this stands for.
+	Value float64 `json:"Value"`
+	Trend string  `json:"Trend"`
 }
 
 func New(accountName, password string, logger *zap.Logger) *Client {
@@ -66,12 +64,10 @@ func New(accountName, password string, logger *zap.Logger) *Client {
 // Readings fetches readings from Dexcom's Share API, and applies a transformation.
 // Automatically creates a new session when it expires.
 func (c *Client) Readings(ctx context.Context, minutes, maxCount int) ([]*types.TransformedReading, error) {
-	trs, err := c.readings(ctx, minutes, maxCount)
-	if err == nil {
+	if trs, err := c.readings(ctx, minutes, maxCount); err == nil {
 		return trs, nil
 	}
-	_, err = c.CreateSession(ctx)
-	if err != nil {
+	if _, err := c.CreateSession(ctx); err != nil {
 		return nil, fmt.Errorf("unable to create dexcom session: %w", err)
 	}
 	return c.readings(ctx, minutes, maxCount)
@@ -88,7 +84,6 @@ func (c *Client) CreateSession(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to marshal login request: %w", err)
 	}
-
 	c.logger.Debug("making login request for sessionID",
 		zap.ByteString("request", b),
 	)
@@ -147,7 +142,6 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*types.
 	defer resp.Body.Close()
 
 	var readings []*Reading
-
 	err = json.NewDecoder(resp.Body).Decode(&readings)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode readings response: %w", err)
@@ -172,7 +166,6 @@ func transform(r *Reading) (*types.TransformedReading, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert to int: %w", err)
 	}
-
 	return &types.TransformedReading{
 		Time:  time.Unix(int64(unix/1000), 0),
 		Mmol:  r.Value / 18,
