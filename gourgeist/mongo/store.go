@@ -25,16 +25,16 @@ const (
 )
 
 type Store interface {
-	WriteGlucose(ctx context.Context, tr *types.TransformedReading) (bool, error)
+	WriteGlucose(ctx context.Context, tr *types.TransformedReading) (*mongo.UpdateResult, error)
 	ReadGlucose(ctx context.Context, start, end time.Time) ([]types.TransformedReading, error)
 
-	WriteInsulin(ctx context.Context, in *types.Insulin) (bool, error)
+	WriteInsulin(ctx context.Context, in *types.Insulin) (*mongo.UpdateResult, error)
 	ReadInsulin(ctx context.Context, start, end time.Time) ([]types.Insulin, error)
 
-	WriteCarbs(ctx context.Context, c *types.Carb) (bool, error)
+	WriteCarbs(ctx context.Context, c *types.Carb) (*mongo.UpdateResult, error)
 	ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carb, error)
 
-	WriteCmdEvent(ctx context.Context, cmd *types.CommandEvent) (bool, error)
+	WriteCmdEvent(ctx context.Context, cmd *types.CommandEvent) (*mongo.UpdateResult, error)
 	ReadCmdEvents(ctx context.Context, start, end time.Time) ([]types.CommandEvent, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
@@ -60,7 +60,7 @@ func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (*MongoSto
 	}, nil
 }
 
-func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event types.TimePoint) (bool, error) {
+func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event types.TimePoint) (*mongo.UpdateResult, error) {
 	ms.Logger.Debug("inserting event",
 		zap.String("collection", collection),
 		zap.Any("event", event))
@@ -77,10 +77,10 @@ func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event t
 			zap.String("collection", collection),
 			zap.Any("event", event),
 			zap.Error(err))
-		return false, fmt.Errorf("unable to insert event: %w", err)
+		return nil, fmt.Errorf("unable to insert event: %w", err)
 	}
 
-	return (res.MatchedCount > 0), nil
+	return res, nil
 }
 
 func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
@@ -114,7 +114,7 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 	return cur.All(ctx, slicePtr)
 }
 
-func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *types.TransformedReading) (bool, error) {
+func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *types.TransformedReading) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, glucoseCollection, tr)
 }
 
@@ -126,7 +126,7 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 	return trs, nil
 }
 
-func (ms *MongoStore) WriteInsulin(ctx context.Context, in *types.Insulin) (bool, error) {
+func (ms *MongoStore) WriteInsulin(ctx context.Context, in *types.Insulin) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, insulinCollection, in)
 }
 
@@ -138,7 +138,7 @@ func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]
 	return ins, nil
 }
 
-func (ms *MongoStore) WriteCarbs(ctx context.Context, c *types.Carb) (bool, error) {
+func (ms *MongoStore) WriteCarbs(ctx context.Context, c *types.Carb) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, carbsCollection, c)
 }
 
@@ -150,7 +150,7 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]ty
 	return carbs, nil
 }
 
-func (ms *MongoStore) WriteCmdEvent(ctx context.Context, cmd *types.CommandEvent) (bool, error) {
+func (ms *MongoStore) WriteCmdEvent(ctx context.Context, cmd *types.CommandEvent) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, cmdEventCollection, cmd)
 }
 

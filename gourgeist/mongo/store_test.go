@@ -63,9 +63,9 @@ func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
 	}
 
 	for _, tr := range trsInsert {
-		replaced, err := suite.ms.WriteGlucose(ctx, &tr)
+		res, err := suite.ms.WriteGlucose(ctx, &tr)
 		assert.NoError(suite.T(), err, "unable to write glucose to test db")
-		assert.False(suite.T(), replaced, "not unique entry")
+		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
 	}
 
 	trs, err := suite.ms.ReadGlucose(ctx, times[2], times[3])
@@ -98,9 +98,9 @@ func (suite *MongoTestSuite) TestReadWriteInsulinIntegration() {
 	}
 
 	for _, in := range insInsert {
-		replaced, err := suite.ms.WriteInsulin(ctx, &in)
+		res, err := suite.ms.WriteInsulin(ctx, &in)
 		assert.NoError(suite.T(), err, "unable to write insulin to test db")
-		assert.False(suite.T(), replaced, "not unique entry")
+		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
 	}
 
 	ins, err := suite.ms.ReadInsulin(ctx, times[2], times[3])
@@ -127,9 +127,9 @@ func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
 	}
 
 	for _, carb := range carbsInsert {
-		replaced, err := suite.ms.WriteCarbs(ctx, &carb)
+		res, err := suite.ms.WriteCarbs(ctx, &carb)
 		assert.NoError(suite.T(), err, "unable to write carbs to test db")
-		assert.False(suite.T(), replaced, "not unique entry")
+		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
 	}
 
 	carbs, err := suite.ms.ReadCarbs(ctx, times[2], times[3])
