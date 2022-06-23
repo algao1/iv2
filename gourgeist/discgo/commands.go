@@ -1,6 +1,8 @@
 package discgo
 
 import (
+	"iv2/gourgeist/types"
+
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -34,6 +36,21 @@ func registeredCommands() []api.CreateCommandData {
 					Description: "Units of insulin.",
 					Min:         option.ZeroInt,
 					Required:    true,
+				},
+				&discord.StringOption{
+					OptionName:  "type",
+					Description: "Type of insuline (fast, slow).",
+					Required:    true,
+					Choices: []discord.StringChoice{
+						{
+							Name:  types.RapidActing.String(),
+							Value: types.RapidActing.String(),
+						},
+						{
+							Name:  types.SlowActing.String(),
+							Value: types.SlowActing.String(),
+						},
+					},
 				},
 			},
 		},

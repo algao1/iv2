@@ -160,7 +160,7 @@ func newDescription(s mongo.Store, loc *time.Location) (string, error) {
 
 	desc := "```"
 	for _, event := range events {
-		desc += fmt.Sprintf("%s %s \n", event.Time.Format(CmdTimeFormat), event.CmdString)
+		desc += fmt.Sprintf("%s %s \n", event.Time.In(loc).Format(CmdTimeFormat), event.CmdString)
 	}
 	desc += "```"
 

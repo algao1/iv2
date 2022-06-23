@@ -1,7 +1,7 @@
 import gc
 import plotly.graph_objects as go
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from ghastly.proto.ghastly_pb2 import FileResponse
 from ghastly.proto.ghastly_pb2_grpc import PlotterServicer as ps
 from loguru import logger
@@ -15,8 +15,10 @@ from modules.store import Store
 
 
 class PlotterServicer(ps):
-    def __init__(self, store: Store) -> None:
+    def __init__(self, config: dict, store: Store) -> None:
         self.store = store
+        self.low = config["glucose"]["low"]
+        self.high = config["glucose"]["high"]
         self.tz = timezone("US/Eastern")
 
     def PlotDaily(self, request, context):
@@ -82,7 +84,9 @@ class PlotterServicer(ps):
         ixs: list[datetime],
         iys: list[float],
     ):
-        y_lim = max(gys) + 1
+        x_lowerlim = gxs[0] + timedelta(minutes=-5)
+        x_upperlim = gxs[-1] + timedelta(minutes=5)
+        y_upperlim = max(gys) + 1
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(name="glucose", x=gxs, y=gys, mode="lines"))
@@ -116,10 +120,10 @@ class PlotterServicer(ps):
                     type="rect",
                     xref="x",
                     yref="y",
-                    x0=gxs[0],
+                    x0=x_lowerlim,
                     y0=10,
-                    x1=gxs[-1],
-                    y1=y_lim,
+                    x1=x_upperlim,
+                    y1=y_upperlim,
                     fillcolor="red",
                     opacity=0.15,
                     line_width=0,
@@ -129,9 +133,9 @@ class PlotterServicer(ps):
                     type="rect",
                     xref="x",
                     yref="y",
-                    x0=gxs[0],
+                    x0=x_lowerlim,
                     y0=2,
-                    x1=gxs[-1],
+                    x1=x_upperlim,
                     y1=4,
                     fillcolor="red",
                     opacity=0.15,
@@ -139,10 +143,10 @@ class PlotterServicer(ps):
                     layer="below",
                 ),
             ],
-            xaxis=dict(range=[gxs[0], gxs[-1]]),
-            yaxis=dict(range=[2, y_lim]),
+            xaxis=dict(range=[x_lowerlim, x_upperlim]),
+            yaxis=dict(range=[2, y_upperlim]),
         )
-        fig.add_hline(y=4, line_dash="dash", line_color="red")
-        fig.add_hline(y=10, line_dash="dash", line_color="red")
+        fig.add_hline(y=self.low, line_dash="dash", line_color="red")
+        fig.add_hline(y=self.high, line_dash="dash", line_color="red")
 
         return fig.to_image(format="png")

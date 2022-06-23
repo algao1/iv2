@@ -16,6 +16,17 @@ func (tr *TransformedReading) GetTime() time.Time {
 	return tr.Time
 }
 
+type InsulinType int
+
+const (
+	RapidActing InsulinType = iota
+	SlowActing
+)
+
+func (it InsulinType) String() string {
+	return [...]string{"rapid", "slow"}[it]
+}
+
 type Insulin struct {
 	Time   time.Time `bson:"time"`
 	Type   string    `bson:"type"`
