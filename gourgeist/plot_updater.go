@@ -65,7 +65,8 @@ func (pu PlotUpdater) Update() error {
 	embed := discord.Embed{
 		Title: glucose.Time.In(pu.Location).Format(discgo.TimeFormat),
 		Fields: []discord.EmbedField{
-			{Name: "Current", Value: strconv.FormatFloat(glucose.Mmol, 'f', 2, 64)},
+			{Name: "Current", Value: strconv.FormatFloat(glucose.Mmol, 'f', 2, 64), Inline: true},
+			{Name: "Trend", Value: glucose.Trend, Inline: true},
 		},
 	}
 

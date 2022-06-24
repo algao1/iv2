@@ -19,6 +19,7 @@ class PlotterServicer(ps):
         self.store = store
         self.low = config["glucose"]["low"]
         self.high = config["glucose"]["high"]
+        self.target = config["glucose"]["target"]
         self.tz = timezone("US/Eastern")
 
     def PlotDaily(self, request, context):
@@ -148,5 +149,6 @@ class PlotterServicer(ps):
         )
         fig.add_hline(y=self.low, line_dash="dash", line_color="red")
         fig.add_hline(y=self.high, line_dash="dash", line_color="red")
+        fig.add_hline(y=self.target, line_dash="dash", line_color="green")
 
         return fig.to_image(format="png")
