@@ -42,7 +42,7 @@ func Run(cfg Config) {
 
 	dexcom := dexcom.New(cfg.Dexcom.Account, cfg.Dexcom.Password, cfg.Logger)
 
-	discgo, err := discgo.New(
+	dg, err := discgo.New(
 		cfg.Discord.Token,
 		cfg.Logger,
 		loc,
@@ -51,9 +51,9 @@ func Run(cfg Config) {
 		panic(err)
 	}
 
-	ch := CommandHandler{Display: discgo, Store: ms, Logger: cfg.Logger, Location: loc}
+	ch := CommandHandler{Display: dg, Store: ms, Logger: cfg.Logger, Location: loc}
 
-	err = discgo.Setup(cfg.Discord.Guild, true, ch.InteractionCreateHandler())
+	err = dg.Setup(cfg.Discord.Guild, discgo.Commands, ch.InteractionCreateHandler())
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +65,7 @@ func Run(cfg Config) {
 	gh := ghastly.New(conn, cfg.Logger)
 
 	pu := PlotUpdater{
-		Display:  discgo,
+		Display:  dg,
 		Plotter:  gh,
 		Store:    ms,
 		Logger:   cfg.Logger,

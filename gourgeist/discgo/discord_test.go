@@ -69,7 +69,7 @@ func (suite *DiscordTestSuite) BeforeTest(_, _ string) {
 	assert.NoError(suite.T(), err, "unable to create test guild")
 	suite.gid = guild.ID
 
-	err = suite.discgo.Setup(suite.gid.String(), false)
+	err = suite.discgo.Setup(suite.gid.String(), []api.CreateCommandData{})
 	assert.NoError(suite.T(), err, "unable to complete setup")
 }
 
@@ -114,6 +114,12 @@ func getSimpleMessageData() api.SendMessageData {
 
 func (suite *DiscordTestSuite) TestNewMainIntegration() {
 	msgData := getSimpleMessageData()
+	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
+}
+
+func (suite *DiscordTestSuite) TestOverwriteMainIntegration() {
+	msgData := getSimpleMessageData()
+	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
 	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
 }
 

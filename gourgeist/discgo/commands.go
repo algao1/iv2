@@ -15,14 +15,11 @@ const (
 	EditInsulinCmd = "editinsulin"
 )
 
-func registeredCommands() []api.CreateCommandData {
-	commands := []api.CreateCommandData{
-		addCarbsCmdData,
-		editCarbsCmdData,
-		addInsulinCmdData,
-		editInsulinCmdData,
-	}
-	return commands
+var Commands []api.CreateCommandData = []api.CreateCommandData{
+	addCarbsCmdData,
+	editCarbsCmdData,
+	addInsulinCmdData,
+	editInsulinCmdData,
 }
 
 var addCarbsCmdData api.CreateCommandData = api.CreateCommandData{

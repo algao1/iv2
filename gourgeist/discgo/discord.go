@@ -56,23 +56,21 @@ func New(token string, logger *zap.Logger, loc *time.Location) (*Discord, error)
 
 // TODO: Function signature is overloaded, need addressing.
 
-func (d *Discord) Setup(guildID string, registerCommands bool, handlers ...interface{}) error {
+func (d *Discord) Setup(guildID string, cmds []api.CreateCommandData, handlers ...interface{}) error {
 	sf, err := discord.ParseSnowflake(guildID)
 	if err != nil {
 		return err
 	}
 	d.gid = discord.GuildID(sf)
 
-	if registerCommands {
-		app, err := d.Session.CurrentApplication()
-		if err != nil {
-			return fmt.Errorf("unable to get current application: %w", err)
-		}
+	app, err := d.Session.CurrentApplication()
+	if err != nil {
+		return fmt.Errorf("unable to get current application: %w", err)
+	}
 
-		for _, command := range registeredCommands() {
-			if _, err = d.Session.CreateGuildCommand(app.ID, d.gid, command); err != nil {
-				return fmt.Errorf("unable to create guild commands: %w", err)
-			}
+	for _, cmd := range cmds {
+		if _, err = d.Session.CreateGuildCommand(app.ID, d.gid, cmd); err != nil {
+			return fmt.Errorf("unable to create guild commands: %w", err)
 		}
 	}
 
