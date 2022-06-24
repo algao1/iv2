@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/discgo"
-	mg "iv2/gourgeist/mongo"
+	"iv2/gourgeist/mg"
 	"iv2/gourgeist/types"
 	"time"
 

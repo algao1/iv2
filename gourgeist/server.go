@@ -5,7 +5,7 @@ import (
 	"iv2/gourgeist/dexcom"
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
-	"iv2/gourgeist/mongo"
+	"iv2/gourgeist/mg"
 	"time"
 
 	"go.uber.org/zap"
@@ -35,7 +35,7 @@ func Run(cfg Config) {
 		}
 	}
 
-	ms, err := mongo.New(ctx, cfg.Mongo.URI, defaultDBName, cfg.Logger)
+	ms, err := mg.New(ctx, cfg.Mongo.URI, defaultDBName, cfg.Logger)
 	if err != nil {
 		panic(err)
 	}
