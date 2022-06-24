@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
 
@@ -39,6 +40,33 @@ func (suite *MongoTestSuite) SetupSuite() {
 func (suite *MongoTestSuite) AfterTest(_, _ string) {
 	suite.T().Log("teardown test db")
 	assert.NoError(suite.T(), suite.ms.Client.Database(testDB).Drop(context.Background()), "unable to drop test db")
+}
+
+func (suite *MongoTestSuite) TestDocByIDIntegration() {
+	ctx := context.Background()
+	id := primitive.NewObjectID()
+	doc := types.Insulin{ID: &id}
+
+	var fetchedDoc types.Insulin
+	_, err := suite.ms.writeEvent(ctx, "test", &doc)
+	assert.NoError(suite.T(), err)
+	assert.NoError(suite.T(), suite.ms.DocByID(ctx, "test", &id, &fetchedDoc), "unable to fetch document by id")
+	assert.EqualValues(suite.T(), doc, fetchedDoc, "not same document")
+}
+
+func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
+	ctx := context.Background()
+	id := primitive.NewObjectID()
+	doc := types.Insulin{ID: &id}
+
+	var fetchedDoc types.Insulin
+	_, err := suite.ms.writeEvent(ctx, "test", &doc)
+	assert.NoError(suite.T(), err)
+	assert.NoError(suite.T(), suite.ms.DeleteByID(ctx, "test", &id))
+	assert.Error(suite.T(),
+		suite.ms.DocByID(ctx, "test", &id, &fetchedDoc),
+		"found document by id, delete not successful",
+	)
 }
 
 func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {

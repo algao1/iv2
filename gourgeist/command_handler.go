@@ -117,11 +117,11 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 
 	var carbs types.Carb
 	if amount < 0 {
-		if err := ch.Store.DeleteById(context.Background(), mg.CarbsCollection, &oid); err != nil {
+		if err := ch.Store.DeleteByID(context.Background(), mg.CarbsCollection, &oid); err != nil {
 			return err
 		}
 	} else {
-		if err := ch.Store.DocById(context.Background(), mg.CarbsCollection, &oid, &carbs); err != nil {
+		if err := ch.Store.DocByID(context.Background(), mg.CarbsCollection, &oid, &carbs); err != nil {
 			return err
 		}
 		_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
@@ -177,7 +177,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 	}
 
 	var ins types.Insulin
-	if err := ch.Store.DocById(context.Background(), mg.InsulinCollection, &oid, &ins); err != nil {
+	if err := ch.Store.DocByID(context.Background(), mg.InsulinCollection, &oid, &ins); err != nil {
 		return err
 	}
 
@@ -203,7 +203,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
 	if units < 0 {
-		if err := ch.Store.DeleteById(context.Background(), mg.InsulinCollection, &oid); err != nil {
+		if err := ch.Store.DeleteByID(context.Background(), mg.InsulinCollection, &oid); err != nil {
 			return err
 		}
 	} else {

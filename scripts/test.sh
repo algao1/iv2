@@ -1,3 +1,3 @@
 #!/bin/bash
 
-go test ./gourgeist/... -covermode=atomic
+go test ./gourgeist/... -covermode=set

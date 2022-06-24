@@ -24,8 +24,8 @@ const (
 )
 
 type Store interface {
-	DocById(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
-	DeleteById(ctx context.Context, collection string, id *primitive.ObjectID) error
+	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
+	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
 
 	WriteGlucose(ctx context.Context, tr *types.TransformedReading) (*mongo.UpdateResult, error)
 	ReadGlucose(ctx context.Context, start, end time.Time) ([]types.TransformedReading, error)
@@ -59,12 +59,12 @@ func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (*MongoSto
 	}, nil
 }
 
-func (ms *MongoStore) DocById(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error {
+func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error {
 	sr := ms.Client.Database(ms.DBName).Collection(collection).FindOne(ctx, bson.M{"_id": id})
 	return sr.Decode(doc)
 }
 
-func (ms *MongoStore) DeleteById(ctx context.Context, collection string, id *primitive.ObjectID) error {
+func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error {
 	ms.Logger.Debug("deleting document by id",
 		zap.String("collection", collection),
 		zap.String("id", id.Hex()),
