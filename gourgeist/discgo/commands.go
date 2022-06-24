@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	AddCarbsCmd   = "carbs"
-	EditCarbsCmd  = "editcarbs"
-	AddInsulinCmd = "insulin"
+	AddCarbsCmd    = "carbs"
+	EditCarbsCmd   = "editcarbs"
+	AddInsulinCmd  = "insulin"
+	EditInsulinCmd = "editinsulin"
 )
 
 func registeredCommands() []api.CreateCommandData {
@@ -19,6 +20,7 @@ func registeredCommands() []api.CreateCommandData {
 		addCarbsCmdData,
 		editCarbsCmdData,
 		addInsulinCmdData,
+		editInsulinCmdData,
 	}
 	return commands
 }
@@ -65,8 +67,38 @@ var addInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 		},
 		&discord.StringOption{
 			OptionName:  "type",
-			Description: "Type of insuline (fast, slow).",
+			Description: "Type of insulin (fast, slow).",
 			Required:    true,
+			Choices: []discord.StringChoice{
+				{
+					Name:  types.RapidActing.String(),
+					Value: types.RapidActing.String(),
+				},
+				{
+					Name:  types.SlowActing.String(),
+					Value: types.SlowActing.String(),
+				},
+			},
+		},
+	},
+}
+
+var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
+	Name:        EditInsulinCmd,
+	Description: "Edit the estimated insulin intake.",
+	Options: discord.CommandOptions{
+		&discord.StringOption{
+			OptionName:  "id",
+			Description: "Id of the event to modify or delete.",
+			Required:    true,
+		},
+		&discord.IntegerOption{
+			OptionName:  "units",
+			Description: "New units of insulin. Negative values indicate deletion.",
+		},
+		&discord.StringOption{
+			OptionName:  "type",
+			Description: "Type of insulin (fast, slow).",
 			Choices: []discord.StringChoice{
 				{
 					Name:  types.RapidActing.String(),

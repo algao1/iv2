@@ -68,6 +68,8 @@ func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error 
 		return ch.handleEditCarbs(data)
 	case discgo.AddInsulinCmd:
 		return ch.handleInsulin(data)
+	case discgo.EditInsulinCmd:
+		return ch.handleEditInsulin(data)
 	default:
 		return fmt.Errorf("received unknown command: %s", data.Name)
 	}
@@ -107,23 +109,28 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 	}
 	amount, _ := data.Options[1].FloatValue()
 
-	var ins types.Insulin
-	if err := ch.Store.DocById(context.Background(), mg.CarbsCollection, &oid, &ins); err != nil {
-		return err
-	}
-
 	oldMessage, err := ch.Display.GetMainMessage()
 	if err != nil {
 		return fmt.Errorf("unable to complete editcarbs command: %w", err)
 	}
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
-	_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
-		Time:   ins.Time,
-		Amount: float64(amount),
-	})
-	if err != nil {
-		return fmt.Errorf("unable to edit carbs: %w", err)
+	var carbs types.Carb
+	if amount < 0 {
+		if err := ch.Store.DeleteById(context.Background(), mg.CarbsCollection, &oid); err != nil {
+			return err
+		}
+	} else {
+		if err := ch.Store.DocById(context.Background(), mg.CarbsCollection, &oid, &carbs); err != nil {
+			return err
+		}
+		_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
+			Time:   carbs.Time,
+			Amount: float64(amount),
+		})
+		if err != nil {
+			return fmt.Errorf("unable to edit carbs: %w", err)
+		}
 	}
 
 	err = ch.updateWithEvent(oldMessage)
@@ -157,6 +164,62 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 	err = ch.updateWithEvent(oldMessage)
 	if err != nil {
 		return fmt.Errorf("unable to complete insulin command: %w", err)
+	}
+
+	return nil
+}
+
+func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) error {
+	id := data.Options[0].String()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	var ins types.Insulin
+	if err := ch.Store.DocById(context.Background(), mg.InsulinCollection, &oid, &ins); err != nil {
+		return err
+	}
+
+	var units = ins.Amount
+	var itype = ins.Type
+
+	for _, opt := range data.Options[1:] {
+		switch opt.Name {
+		case "units":
+			units, err = opt.FloatValue()
+		case "type":
+			itype = opt.String()
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	oldMessage, err := ch.Display.GetMainMessage()
+	if err != nil {
+		return fmt.Errorf("unable to complete editcarbs command: %w", err)
+	}
+	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
+
+	if units < 0 {
+		if err := ch.Store.DeleteById(context.Background(), mg.InsulinCollection, &oid); err != nil {
+			return err
+		}
+	} else {
+		_, err = ch.Store.WriteInsulin(context.Background(), &types.Insulin{
+			Time:   ins.Time,
+			Amount: units,
+			Type:   itype,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to edit insulin: %w", err)
+		}
+	}
+
+	err = ch.updateWithEvent(oldMessage)
+	if err != nil {
+		return fmt.Errorf("unable to complete editinsulin command: %w", err)
 	}
 
 	return nil
@@ -204,13 +267,15 @@ func newDescription(s mg.Store, loc *time.Location) (string, error) {
 		if i >= 0 {
 			desc += fmt.Sprintf("%s :: %s\n",
 				ins[i].Time.In(loc).Format(CmdTimeFormat),
-				ins[i].ID.String()[10:34])
+				ins[i].ID.Hex(),
+			)
 			desc += fmt.Sprintf("insulin %.2f %s\n", ins[i].Amount, ins[i].Type)
 			i--
 		} else {
 			desc += fmt.Sprintf("%s :: %s\n",
 				carbs[j].Time.In(loc).Format(CmdTimeFormat),
-				carbs[j].ID.String()[10:34])
+				carbs[j].ID.Hex(),
+			)
 			desc += fmt.Sprintf("carbs %.2f\n", carbs[j].Amount)
 			j--
 		}
