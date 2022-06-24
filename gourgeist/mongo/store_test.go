@@ -72,7 +72,9 @@ func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
 	assert.NoError(suite.T(), err, "unable to read glucose from test db")
 	assert.Len(suite.T(), trs, len(trsInsert), "did not find exactly one entry")
 	for i := range trs {
-		assert.EqualValues(suite.T(), trsInsert[i], trs[i])
+		assert.EqualValues(suite.T(), trsInsert[i].Mmol, trs[i].Mmol)
+		assert.EqualValues(suite.T(), trsInsert[i].Time, trs[i].Time)
+		assert.EqualValues(suite.T(), trsInsert[i].Trend, trs[i].Trend)
 	}
 }
 
@@ -107,7 +109,9 @@ func (suite *MongoTestSuite) TestReadWriteInsulinIntegration() {
 	assert.NoError(suite.T(), err, "unable to read insulin from test db")
 	assert.Len(suite.T(), ins, len(insInsert), "did not find all entries")
 	for i := range ins {
-		assert.EqualValues(suite.T(), insInsert[i], ins[i])
+		assert.EqualValues(suite.T(), insInsert[i].Amount, ins[i].Amount)
+		assert.EqualValues(suite.T(), insInsert[i].Time, ins[i].Time)
+		assert.EqualValues(suite.T(), insInsert[i].Type, ins[i].Type)
 	}
 }
 
@@ -136,6 +140,7 @@ func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
 	assert.NoError(suite.T(), err, "unable to read insulin from test db")
 	assert.Len(suite.T(), carbs, len(carbsInsert), "did not find exactly one entry")
 	for i := range carbs {
-		assert.EqualValues(suite.T(), carbsInsert[i], carbs[i])
+		assert.EqualValues(suite.T(), carbsInsert[i].Amount, carbs[i].Amount)
+		assert.EqualValues(suite.T(), carbsInsert[i].Time, carbs[i].Time)
 	}
 }
