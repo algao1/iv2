@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type TimePoint interface {
 	GetTime() time.Time
@@ -28,9 +32,10 @@ func (it InsulinType) String() string {
 }
 
 type Insulin struct {
-	Time   time.Time `bson:"time"`
-	Type   string    `bson:"type"`
-	Amount float64   `bson:"amount"`
+	ID     *primitive.ObjectID `bson:"_id,omitempty"`
+	Time   time.Time           `bson:"time"`
+	Type   string              `bson:"type"`
+	Amount float64             `bson:"amount"`
 }
 
 func (in *Insulin) GetTime() time.Time {
@@ -38,8 +43,9 @@ func (in *Insulin) GetTime() time.Time {
 }
 
 type Carb struct {
-	Time   time.Time `bson:"time"`
-	Amount float64   `bson:"amount"`
+	ID     *primitive.ObjectID `bson:"_id,omitempty"`
+	Time   time.Time           `bson:"time"`
+	Amount float64             `bson:"amount"`
 }
 
 func (c *Carb) GetTime() time.Time {

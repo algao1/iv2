@@ -88,7 +88,7 @@ func ExecuteTask(interval time.Duration, task func() error, logger *zap.Logger) 
 	for ; true; <-ticker.C {
 		err := task()
 		if err != nil {
-			logger.Debug("error executing task", zap.Error(err))
+			logger.Error("error executing task", zap.Error(err))
 		}
 	}
 }

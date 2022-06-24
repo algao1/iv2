@@ -9,51 +9,74 @@ import (
 )
 
 const (
-	CarbsCommand   = "carbs"
-	InsulinCommand = "insulin"
+	AddCarbsCmd   = "carbs"
+	EditCarbsCmd  = "editcarbs"
+	AddInsulinCmd = "insulin"
 )
 
 func registeredCommands() []api.CreateCommandData {
 	commands := []api.CreateCommandData{
-		{
-			Name:        CarbsCommand,
-			Description: "Record the estimated carbohydrate intake.",
-			Options: discord.CommandOptions{
-				&discord.IntegerOption{
-					OptionName:  "amount",
-					Description: "Amount of carbohydrates (grams).",
-					Min:         option.ZeroInt,
-					Required:    true,
-				},
-			},
-		},
-		{
-			Name:        InsulinCommand,
-			Description: "Record the estimated insulin intake.",
-			Options: discord.CommandOptions{
-				&discord.IntegerOption{
-					OptionName:  "units",
-					Description: "Units of insulin.",
-					Min:         option.ZeroInt,
-					Required:    true,
-				},
-				&discord.StringOption{
-					OptionName:  "type",
-					Description: "Type of insuline (fast, slow).",
-					Required:    true,
-					Choices: []discord.StringChoice{
-						{
-							Name:  types.RapidActing.String(),
-							Value: types.RapidActing.String(),
-						},
-						{
-							Name:  types.SlowActing.String(),
-							Value: types.SlowActing.String(),
-						},
-					},
-				},
-			},
-		},
+		addCarbsCmdData,
+		editCarbsCmdData,
+		addInsulinCmdData,
 	}
 	return commands
+}
+
+var addCarbsCmdData api.CreateCommandData = api.CreateCommandData{
+	Name:        AddCarbsCmd,
+	Description: "Record the estimated carbohydrate intake.",
+	Options: discord.CommandOptions{
+		&discord.IntegerOption{
+			OptionName:  "amount",
+			Description: "Amount of carbohydrates (grams).",
+			Min:         option.ZeroInt,
+			Required:    true,
+		},
+	},
+}
+
+var editCarbsCmdData api.CreateCommandData = api.CreateCommandData{
+	Name:        EditCarbsCmd,
+	Description: "Edit the estimated carbohydrate intake.",
+	Options: discord.CommandOptions{
+		&discord.StringOption{
+			OptionName:  "id",
+			Description: "Id of the event to modify or delete.",
+			Required:    true,
+		},
+		&discord.IntegerOption{
+			OptionName:  "amount",
+			Description: "New amount of carbohydrates (grams). Negative values indicate deletion.",
+			Required:    true,
+		},
+	},
+}
+
+var addInsulinCmdData api.CreateCommandData = api.CreateCommandData{
+	Name:        AddInsulinCmd,
+	Description: "Record the estimated insulin intake.",
+	Options: discord.CommandOptions{
+		&discord.IntegerOption{
+			OptionName:  "units",
+			Description: "Units of insulin.",
+			Min:         option.ZeroInt,
+			Required:    true,
+		},
+		&discord.StringOption{
+			OptionName:  "type",
+			Description: "Type of insuline (fast, slow).",
+			Required:    true,
+			Choices: []discord.StringChoice{
+				{
+					Name:  types.RapidActing.String(),
+					Value: types.RapidActing.String(),
+				},
+				{
+					Name:  types.SlowActing.String(),
+					Value: types.SlowActing.String(),
+				},
+			},
+		},
+	},
 }

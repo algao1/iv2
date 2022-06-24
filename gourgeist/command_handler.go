@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/discgo"
-	"iv2/gourgeist/mongo"
+	mg "iv2/gourgeist/mongo"
 	"iv2/gourgeist/types"
 	"time"
 
@@ -12,18 +12,19 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
 
 const (
-	CmdTimeFormat  = "01-02 03:04 PM"
+	CmdTimeFormat  = "03:04 PM"
 	ExpireDuration = 8 * time.Hour
 	LogLimit       = 5
 )
 
 type CommandHandler struct {
 	Display discgo.Display
-	Store   mongo.Store
+	Store   mg.Store
 
 	Logger   *zap.Logger
 	Location *time.Location
@@ -34,14 +35,6 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 		var err error
 		switch data := e.Data.(type) {
 		case *discord.CommandInteraction:
-			cmdString := data.Name
-			for _, opt := range data.Options {
-				cmdString += fmt.Sprintf(" %s %s", opt.Name, opt.String())
-			}
-			ch.Store.WriteCmdEvent(context.Background(), &types.CommandEvent{
-				Time:      time.Now().In(ch.Location),
-				CmdString: cmdString,
-			})
 			err = ch.handleCommand(data)
 		}
 
@@ -69,9 +62,11 @@ func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error 
 	ch.Logger.Debug("received command", zap.String("cmd", data.Name))
 
 	switch data.Name {
-	case discgo.CarbsCommand:
+	case discgo.AddCarbsCmd:
 		return ch.handleCarbs(data)
-	case discgo.InsulinCommand:
+	case discgo.EditCarbsCmd:
+		return ch.handleEditCarbs(data)
+	case discgo.AddInsulinCmd:
 		return ch.handleInsulin(data)
 	default:
 		return fmt.Errorf("received unknown command: %s", data.Name)
@@ -98,7 +93,42 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 
 	err = ch.updateWithEvent(oldMessage)
 	if err != nil {
-		return fmt.Errorf("unable to complete insul command: %w", err)
+		return fmt.Errorf("unable to complete carbs command: %w", err)
+	}
+
+	return nil
+}
+
+func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) error {
+	id := data.Options[0].String()
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	amount, _ := data.Options[1].FloatValue()
+
+	var ins types.Insulin
+	if err := ch.Store.DocById(context.Background(), mg.CarbsCollection, &oid, &ins); err != nil {
+		return err
+	}
+
+	oldMessage, err := ch.Display.GetMainMessage()
+	if err != nil {
+		return fmt.Errorf("unable to complete editcarbs command: %w", err)
+	}
+	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
+
+	_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
+		Time:   ins.Time,
+		Amount: float64(amount),
+	})
+	if err != nil {
+		return fmt.Errorf("unable to edit carbs: %w", err)
+	}
+
+	err = ch.updateWithEvent(oldMessage)
+	if err != nil {
+		return fmt.Errorf("unable to complete editcarbs command: %w", err)
 	}
 
 	return nil
@@ -106,17 +136,19 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 
 func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error {
 	units, _ := data.Options[0].FloatValue()
-	ch.Logger.Debug("insulin", zap.Float64("units", units))
+	insulinType := data.Options[1].String()
+	ch.Logger.Debug("insulin", zap.Float64("units", units), zap.String("type", insulinType))
 
 	oldMessage, err := ch.Display.GetMainMessage()
 	if err != nil {
-		return fmt.Errorf("unable to complete insul command: %w", err)
+		return fmt.Errorf("unable to complete insulin command: %w", err)
 	}
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
 	_, err = ch.Store.WriteInsulin(context.Background(), &types.Insulin{
 		Time:   time.Now().In(ch.Location),
 		Amount: units,
+		Type:   insulinType,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to save insulin: %w", err)
@@ -124,7 +156,7 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 
 	err = ch.updateWithEvent(oldMessage)
 	if err != nil {
-		return fmt.Errorf("unable to complete insul command: %w", err)
+		return fmt.Errorf("unable to complete insulin command: %w", err)
 	}
 
 	return nil
@@ -143,24 +175,45 @@ func (ch *CommandHandler) updateWithEvent(oldMessage *discord.Message) error {
 	})
 }
 
-func newDescription(s mongo.Store, loc *time.Location) (string, error) {
+func newDescription(s mg.Store, loc *time.Location) (string, error) {
 	end := time.Now().In(loc)
 	start := end.Add(-ExpireDuration)
 
-	events, err := s.ReadCmdEvents(context.Background(), start, end)
+	ins, err := s.ReadInsulin(context.Background(), start, end)
 	if err != nil {
 		return "", err
 	}
 
-	if len(events) == 0 {
+	carbs, err := s.ReadCarbs(context.Background(), start, end)
+	if err != nil {
+		return "", err
+	}
+
+	max_len := LogLimit
+	if len(ins)+len(carbs) < max_len {
+		max_len = len(ins) + len(carbs)
+	}
+	if max_len == 0 {
 		return "", nil
-	} else if len(events) > LogLimit {
-		events = events[len(events)-LogLimit:]
 	}
 
 	desc := "```"
-	for _, event := range events {
-		desc += fmt.Sprintf("%s %s \n", event.Time.In(loc).Format(CmdTimeFormat), event.CmdString)
+	i := len(ins) - 1
+	j := len(carbs) - 1
+	for t := 0; t < max_len; t++ {
+		if i >= 0 {
+			desc += fmt.Sprintf("%s :: %s\n",
+				ins[i].Time.In(loc).Format(CmdTimeFormat),
+				ins[i].ID.String()[10:34])
+			desc += fmt.Sprintf("insulin %.2f %s\n", ins[i].Amount, ins[i].Type)
+			i--
+		} else {
+			desc += fmt.Sprintf("%s :: %s\n",
+				carbs[j].Time.In(loc).Format(CmdTimeFormat),
+				carbs[j].ID.String()[10:34])
+			desc += fmt.Sprintf("carbs %.2f\n", carbs[j].Amount)
+			j--
+		}
 	}
 	desc += "```"
 
