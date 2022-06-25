@@ -85,8 +85,8 @@ class PlotterServicer(ps):
         ixs: list[datetime],
         iys: list[float],
     ):
-        x_lowerlim = gxs[0] + timedelta(minutes=-5)
-        x_upperlim = gxs[-1] + timedelta(minutes=5)
+        x_lowerlim = gxs[0] + timedelta(minutes=-10)
+        x_upperlim = gxs[-1] + timedelta(minutes=10)
         y_upperlim = max(gys) + 1
 
         fig = go.Figure()
