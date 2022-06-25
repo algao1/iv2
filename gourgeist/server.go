@@ -65,11 +65,12 @@ func Run(cfg Config) {
 	gh := ghastly.New(conn, cfg.Logger)
 
 	pu := PlotUpdater{
-		Display:  dg,
-		Plotter:  gh,
-		Store:    ms,
-		Logger:   cfg.Logger,
-		Location: loc,
+		Display:       dg,
+		Plotter:       gh,
+		Store:         ms,
+		Logger:        cfg.Logger,
+		Location:      loc,
+		GlucoseConfig: cfg.Glucose,
 	}
 
 	f := Fetcher{

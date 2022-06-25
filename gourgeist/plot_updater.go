@@ -6,6 +6,7 @@ import (
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
 	"iv2/gourgeist/mg"
+	"iv2/gourgeist/stats"
 	"strconv"
 	"time"
 
@@ -17,13 +18,20 @@ import (
 
 const lookbackInterval = -12 * time.Hour
 
+var inlineBlankField = discord.EmbedField{
+	Name:   "\u200b",
+	Value:  "\u200b",
+	Inline: true,
+}
+
 type PlotUpdater struct {
 	Display discgo.Display
 	Plotter ghastly.Plotter
 	Store   mg.Store
 
-	Logger   *zap.Logger
-	Location *time.Location
+	Logger        *zap.Logger
+	Location      *time.Location
+	GlucoseConfig GlucoseConfig
 }
 
 func (pu PlotUpdater) Update() error {
@@ -61,12 +69,18 @@ func (pu PlotUpdater) Update() error {
 		pu.Logger.Debug("unable to delete file", zap.Error(err))
 	}
 
+	ra := stats.TimeSpentInRange(pd.Glucose, pu.GlucoseConfig.Low, pu.GlucoseConfig.High)
+
 	glucose := pd.Glucose[len(pd.Glucose)-1]
 	embed := discord.Embed{
 		Title: glucose.Time.In(pu.Location).Format(discgo.TimeFormat),
 		Fields: []discord.EmbedField{
 			{Name: "Current", Value: strconv.FormatFloat(glucose.Mmol, 'f', 2, 64), Inline: true},
 			{Name: "Trend", Value: glucose.Trend, Inline: true},
+			inlineBlankField,
+			{Name: "In Range", Value: strconv.FormatFloat(ra.InRange, 'f', 2, 64), Inline: true},
+			{Name: "Above Range", Value: strconv.FormatFloat(ra.AboveRange, 'f', 2, 64), Inline: true},
+			inlineBlankField,
 		},
 	}
 
