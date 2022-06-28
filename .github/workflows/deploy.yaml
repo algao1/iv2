@@ -2,6 +2,11 @@ name: Server Build
 on:
   push:
     branches: [master]
+    paths:
+      - "cmd/**"
+      - "gourgeist/**"
+      - "trevenant/**"
+      - docker-compose.yaml
 
 jobs:
   build_and_push:
@@ -28,9 +33,6 @@ jobs:
         run: ./scripts/protoc.sh
         shell: bash
 
-      - name: Sanity check
-        run: ls -R trevenant/
-
       - name: Create config file
         run: |
           go run shuppet/shuppet.go \
@@ -52,3 +54,6 @@ jobs:
 
       - name: Push image to DO Container Registry
         run: docker compose -f docker-compose.yaml push
+
+      - name: Garbage collect old images
+        run: doctl registry garbage-collection start
