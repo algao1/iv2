@@ -1,5 +1,4 @@
 import grpc
-import os
 import yaml
 
 from concurrent import futures

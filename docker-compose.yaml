@@ -2,6 +2,7 @@ version: "3.7"
 services:
 
   gourgeist:
+    image: registry.digitalocean.com/paperboy/gourgeist
     build:
       context: .
       dockerfile: ./cmd/gourgeist/Dockerfile
@@ -11,9 +12,10 @@ services:
       - mongo
 
   trevenant:
+    image: registry.digitalocean.com/paperboy/trevenant
     build:
       context: .
-      dockerfile: ./cmd/trevenant/D5ockerfile
+      dockerfile: ./cmd/trevenant/Dockerfile
     container_name: trevenant
     depends_on:
       - mongo
