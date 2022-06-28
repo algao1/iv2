@@ -26,7 +26,7 @@ func TimeSpentInRange(trs []types.TransformedReading, lower, upper float64) Rang
 		}
 	}
 
-	total := below + in + above
+	total := float64(len(trs))
 	return RangeAnalysis{
 		BelowRange: below / total,
 		InRange:    in / total,
