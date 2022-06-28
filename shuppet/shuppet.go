@@ -28,7 +28,7 @@ func main() {
 			Guild: *discordGuild,
 		},
 		Mongo: gourgeist.MongoConfig{
-			URI: "mongodb://localhost:27017",
+			URI: "mongodb://mongo:27017",
 		},
 		Glucose: gourgeist.GlucoseConfig{
 			Low:    4,

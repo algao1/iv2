@@ -1,4 +1,5 @@
 import grpc
+import os
 import yaml
 
 from concurrent import futures
@@ -10,7 +11,8 @@ from modules.store import Store
 
 
 if __name__ == "__main__":
-    with open("config.yaml", "r") as file:
+    config_file = "config.yaml"
+    with open(config_file, "r") as file:
         config = yaml.safe_load(file)
 
     store = Store(config["mongo"]["uri"])

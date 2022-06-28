@@ -13,7 +13,7 @@ services:
   trevenant:
     build:
       context: .
-      dockerfile: ./cmd/trevenant/Dockerfile
+      dockerfile: ./cmd/trevenant/D5ockerfile
     container_name: trevenant
     depends_on:
       - mongo

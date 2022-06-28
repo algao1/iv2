@@ -9,4 +9,5 @@ __pycache__
 proto
 
 # Configs.
-*.yaml
+config.yaml
+docker-config.yaml

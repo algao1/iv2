@@ -1,4 +1,4 @@
-FROM golang:1.17-alpine AS build_base
+FROM golang:1.18-alpine AS build_base
 WORKDIR /go/iv2
 COPY go.mod go.sum ./
 RUN go mod download

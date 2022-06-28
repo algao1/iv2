@@ -9,7 +9,7 @@ type Config struct {
 	Glucose       GlucoseConfig `yaml:"glucose"`
 	TrevenantAddr string        `yaml:"trevenantAddress"`
 	Timezone      string        `yaml:"timezone"`
-	Logger        *zap.Logger
+	Logger        *zap.Logger   `yaml:"_,omitempty"`
 }
 
 type DexcomConfig struct {

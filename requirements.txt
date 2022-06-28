@@ -1,5 +1,5 @@
 grpcio==1.42.0
-kaleido-core==0.2.1
+kaleido==0.2.1
 loguru==0.5.3
 matplotlib==3.5.1
 plotly==5.8.2
