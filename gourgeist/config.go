@@ -19,7 +19,7 @@ type DexcomConfig struct {
 
 type DiscordConfig struct {
 	Token string `yaml:"token"`
-	Guild string `yaml:"guild"`
+	Guild int    `yaml:"guild"`
 }
 
 type GlucoseConfig struct {

@@ -6,6 +6,7 @@ import (
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
 	"iv2/gourgeist/mg"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -53,7 +54,7 @@ func Run(cfg Config) {
 
 	ch := CommandHandler{Display: dg, Store: ms, Logger: cfg.Logger, Location: loc}
 
-	err = dg.Setup(cfg.Discord.Guild, discgo.Commands, ch.InteractionCreateHandler())
+	err = dg.Setup(strconv.Itoa(cfg.Discord.Guild), discgo.Commands, ch.InteractionCreateHandler())
 	if err != nil {
 		panic(err)
 	}
