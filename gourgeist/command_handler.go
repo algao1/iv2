@@ -269,7 +269,7 @@ func newDescription(s mg.Store, loc *time.Location) (string, error) {
 				ins[i].Time.In(loc).Format(CmdTimeFormat),
 				ins[i].ID.Hex(),
 			)
-			desc += fmt.Sprintf("insulin %.2f %s\n", ins[i].Amount, ins[i].Type)
+			desc += fmt.Sprintf("insulin %s %.2f\n", ins[i].Type, ins[i].Amount)
 			i--
 		} else {
 			desc += fmt.Sprintf("%s :: %s\n",

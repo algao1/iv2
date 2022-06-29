@@ -55,6 +55,6 @@ jobs:
       - name: Push image to DO Container Registry
         run: docker compose -f docker-compose.yaml push
 
-      - name: Garbage collect old images
-        run: |
-          echo y | doctl registry garbage-collection start
+      # - name: Garbage collect old images
+      #   run: |
+      #     echo y | doctl registry garbage-collection start
