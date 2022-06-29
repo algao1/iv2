@@ -142,8 +142,8 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 }
 
 func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error {
-	units, _ := data.Options[0].FloatValue()
-	insulinType := data.Options[1].String()
+	insulinType := data.Options[0].String()
+	units, _ := data.Options[1].FloatValue()
 	ch.Logger.Debug("insulin", zap.Float64("units", units), zap.String("type", insulinType))
 
 	oldMessage, err := ch.Display.GetMainMessage()

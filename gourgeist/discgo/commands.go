@@ -56,12 +56,6 @@ var addInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 	Name:        AddInsulinCmd,
 	Description: "Record the estimated insulin intake.",
 	Options: discord.CommandOptions{
-		&discord.IntegerOption{
-			OptionName:  "units",
-			Description: "Units of insulin.",
-			Min:         option.ZeroInt,
-			Required:    true,
-		},
 		&discord.StringOption{
 			OptionName:  "type",
 			Description: "Type of insulin (fast, slow).",
@@ -76,6 +70,12 @@ var addInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 					Value: types.SlowActing.String(),
 				},
 			},
+		},
+		&discord.IntegerOption{
+			OptionName:  "units",
+			Description: "Units of insulin.",
+			Min:         option.ZeroInt,
+			Required:    true,
 		},
 	},
 }
@@ -89,10 +89,6 @@ var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 			Description: "Id of the event to modify or delete.",
 			Required:    true,
 		},
-		&discord.IntegerOption{
-			OptionName:  "units",
-			Description: "New units of insulin. Negative values indicate deletion.",
-		},
 		&discord.StringOption{
 			OptionName:  "type",
 			Description: "Type of insulin (fast, slow).",
@@ -106,6 +102,10 @@ var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 					Value: types.SlowActing.String(),
 				},
 			},
+		},
+		&discord.IntegerOption{
+			OptionName:  "units",
+			Description: "New units of insulin. Negative values indicate deletion.",
 		},
 	},
 }
