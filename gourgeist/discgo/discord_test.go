@@ -69,7 +69,7 @@ func (suite *DiscordTestSuite) BeforeTest(_, _ string) {
 	assert.NoError(suite.T(), err, "unable to create test guild")
 	suite.gid = guild.ID
 
-	err = suite.discgo.Setup(suite.gid.String(), []api.CreateCommandData{})
+	err = suite.discgo.Setup(suite.gid.String(), []api.CreateCommandData{}, []string{})
 	assert.NoError(suite.T(), err, "unable to complete setup")
 }
 
@@ -85,7 +85,7 @@ func (suite *DiscordTestSuite) TestSetupIntegration() {
 
 	var chFound bool
 	for _, ch := range channels {
-		if ch.Name == broadcastChannelName {
+		if ch.Name == mainChannel {
 			chFound = true
 		}
 	}

@@ -54,7 +54,12 @@ func Run(cfg Config) {
 
 	ch := CommandHandler{Display: dg, Store: ms, Logger: cfg.Logger, Location: loc}
 
-	err = dg.Setup(strconv.Itoa(cfg.Discord.Guild), discgo.Commands, ch.InteractionCreateHandler())
+	err = dg.Setup(
+		strconv.Itoa(cfg.Discord.Guild),
+		discgo.Commands,
+		[]string{},
+		ch.InteractionCreateHandler(),
+	)
 	if err != nil {
 		panic(err)
 	}
