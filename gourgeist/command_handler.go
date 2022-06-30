@@ -264,7 +264,8 @@ func newDescription(s mg.Store, loc *time.Location) (string, error) {
 	i := len(ins) - 1
 	j := len(carbs) - 1
 	for t := 0; t < max_len; t++ {
-		if i >= 0 {
+		// TODO: Make this cleaner.
+		if i >= 0 && (j < 0 || ins[i].Time.After(carbs[j].Time)) {
 			desc += fmt.Sprintf("%s :: %s\n",
 				ins[i].Time.In(loc).Format(CmdTimeFormat),
 				ins[i].ID.Hex(),
