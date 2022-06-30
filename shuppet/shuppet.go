@@ -16,6 +16,10 @@ func main() {
 	discordToken := flag.String("discord-token", "", "discord token")
 	discordGuild := flag.Int("discord-guild", 0, "discord guild id")
 
+	glucoseLow := flag.Float64("glucose-low", 4, "lower bound for glucose")
+	glucoseHigh := flag.Float64("glucose-high", 9, "upper bound for glucose")
+	glucoseTarget := flag.Float64("glucose-target", 6, "target glucose")
+
 	flag.Parse()
 
 	cfg := gourgeist.Config{
@@ -31,9 +35,9 @@ func main() {
 			URI: "mongodb://mongo:27017",
 		},
 		Glucose: gourgeist.GlucoseConfig{
-			Low:    4,
-			High:   10,
-			Target: 6,
+			Low:    *glucoseLow,
+			High:   *glucoseHigh,
+			Target: *glucoseTarget,
 		},
 		TrevenantAddr: "trevenant:50051",
 		Timezone:      "America/Toronto",
