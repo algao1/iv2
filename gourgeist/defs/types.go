@@ -11,9 +11,10 @@ type TimePoint interface {
 }
 
 type TransformedReading struct {
-	Time  time.Time `bson:"time"`
-	Mmol  float64   `bson:"mmol"`
-	Trend string    `bson:"trend"`
+	ID    *primitive.ObjectID `bson:"_id,omitempty"`
+	Time  time.Time           `bson:"time"`
+	Mmol  float64             `bson:"mmol"`
+	Trend string              `bson:"trend"`
 }
 
 func (tr *TransformedReading) GetTime() time.Time {
@@ -52,11 +53,13 @@ func (c *Carb) GetTime() time.Time {
 	return c.Time
 }
 
-type CommandEvent struct {
-	Time      time.Time `bson:"time"`
-	CmdString string    `bson:"cmdString"`
+type Alert struct {
+	ID     *primitive.ObjectID `bson:"_id,omitempty"`
+	Time   time.Time           `bson:"time"`
+	Label  string              `bson:"label"`
+	Reason string              `bson:"reason"`
 }
 
-func (cmd *CommandEvent) GetTime() time.Time {
-	return cmd.Time
+func (al *Alert) GetTime() time.Time {
+	return al.Time
 }

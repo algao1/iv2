@@ -82,6 +82,8 @@ func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
 	)
 }
 
+// TODO: Clean up these unit tests to reduce duplicate code.
+
 func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
 	ctx := context.Background()
 	times := []time.Time{
@@ -169,6 +171,10 @@ func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
 			Time:   times[0],
 			Amount: 10,
 		},
+		{
+			Time:   times[1],
+			Amount: 10,
+		},
 	}
 
 	for _, carb := range carbsInsert {
@@ -178,10 +184,46 @@ func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
 	}
 
 	carbs, err := suite.ms.ReadCarbs(ctx, times[2], times[3])
-	assert.NoError(suite.T(), err, "unable to read insulin from test db")
+	assert.NoError(suite.T(), err, "unable to read carbs from test db")
 	assert.Len(suite.T(), carbs, len(carbsInsert), "did not find exactly one entry")
 	for i := range carbs {
 		assert.EqualValues(suite.T(), carbsInsert[i].Amount, carbs[i].Amount)
 		assert.EqualValues(suite.T(), carbsInsert[i].Time, carbs[i].Time)
+	}
+}
+
+func (suite *MongoTestSuite) TestReadWriteAlertsIntegration() {
+	ctx := context.Background()
+	times := []time.Time{
+		time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
+		time.Date(2022, time.May, 15, 1, 30, 0, 0, time.UTC),
+		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC), // Start.
+		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC), // End.
+	}
+	alertsInsert := []defs.Alert{
+		{
+			Time:   times[0],
+			Label:  "testlabel",
+			Reason: "testreason",
+		},
+		{
+			Time:   times[1],
+			Label:  "testlabel2",
+			Reason: "testreason2",
+		},
+	}
+
+	for _, alert := range alertsInsert {
+		res, err := suite.ms.WriteAlerts(ctx, &alert)
+		assert.NoError(suite.T(), err, "unable to write alerts to test db")
+		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
+	}
+
+	alerts, err := suite.ms.ReadAlerts(ctx, times[2], times[3])
+	assert.NoError(suite.T(), err, "unable to read alerts from test db")
+	assert.Len(suite.T(), alerts, len(alertsInsert), "did not find exactly one entry")
+	for i := range alerts {
+		assert.EqualValues(suite.T(), alertsInsert[i].Label, alerts[i].Label)
+		assert.EqualValues(suite.T(), alertsInsert[i].Reason, alerts[i].Reason)
 	}
 }

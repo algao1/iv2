@@ -20,6 +20,7 @@ const (
 	GlucoseCollection = "glucose"
 	InsulinCollection = "insulin"
 	CarbsCollection   = "carbs"
+	AlertsCollection  = "alerts"
 	FilesCollection   = "fs.files"
 )
 
@@ -35,6 +36,9 @@ type Store interface {
 
 	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
 	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
+
+	WriteAlerts(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error)
+	ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
 	DeleteFile(ctx context.Context, fid string) error
@@ -168,6 +172,18 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]de
 		return nil, fmt.Errorf("unable to read carbs: %w", err)
 	}
 	return carbs, nil
+}
+
+func (ms *MongoStore) WriteAlerts(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
+	return ms.writeEvent(ctx, AlertsCollection, al)
+}
+
+func (ms *MongoStore) ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error) {
+	var alerts []defs.Alert
+	if err := ms.getEventBetween(ctx, AlertsCollection, start, end, &alerts); err != nil {
+		return nil, fmt.Errorf("unable to read alerts: %w", err)
+	}
+	return alerts, nil
 }
 
 func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, error) {
