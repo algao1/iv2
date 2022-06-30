@@ -2,7 +2,7 @@
 .data
 
 # Experiments.
-notebooks
+exp
 
 # Auto-generated files.
 __pycache__
