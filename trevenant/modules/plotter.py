@@ -117,12 +117,12 @@ class PlotterServicer(ps):
             height=700,
             margin=dict(l=20, r=20, t=20, b=20),
             shapes=[
-                dict(
+                dict(  # Upper rectangle.
                     type="rect",
                     xref="x",
                     yref="y",
                     x0=x_lowerlim,
-                    y0=10,
+                    y0=self.high,
                     x1=x_upperlim,
                     y1=y_upperlim,
                     fillcolor="red",
@@ -130,14 +130,14 @@ class PlotterServicer(ps):
                     line_width=0,
                     layer="below",
                 ),
-                dict(
+                dict( # Lower rectangle.
                     type="rect",
                     xref="x",
                     yref="y",
                     x0=x_lowerlim,
                     y0=2,
                     x1=x_upperlim,
-                    y1=4,
+                    y1=self.low,
                     fillcolor="red",
                     opacity=0.15,
                     line_width=0,
