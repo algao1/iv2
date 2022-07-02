@@ -2,7 +2,7 @@ package mg
 
 import (
 	"context"
-	"iv2/gourgeist/types"
+	"iv2/gourgeist/defs"
 	"testing"
 	"time"
 
@@ -45,9 +45,9 @@ func (suite *MongoTestSuite) AfterTest(_, _ string) {
 func (suite *MongoTestSuite) TestDocByIDIntegration() {
 	ctx := context.Background()
 	id := primitive.NewObjectID()
-	doc := types.Insulin{ID: &id}
+	doc := defs.Insulin{ID: &id}
 
-	var fetchedDoc types.Insulin
+	var fetchedDoc defs.Insulin
 	_, err := suite.ms.writeEvent(ctx, "test", &doc)
 	assert.NoError(suite.T(), err)
 	assert.NoError(suite.T(), suite.ms.DocByID(ctx, "test", &id, &fetchedDoc), "unable to fetch document by id")
@@ -57,9 +57,9 @@ func (suite *MongoTestSuite) TestDocByIDIntegration() {
 func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
 	ctx := context.Background()
 	id := primitive.NewObjectID()
-	doc := types.Insulin{ID: &id}
+	doc := defs.Insulin{ID: &id}
 
-	var fetchedDoc types.Insulin
+	var fetchedDoc defs.Insulin
 	_, err := suite.ms.writeEvent(ctx, "test", &doc)
 	assert.NoError(suite.T(), err)
 	assert.NoError(suite.T(), suite.ms.DeleteByID(ctx, "test", &id))
@@ -77,7 +77,7 @@ func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
 		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC), // Start.
 		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC), // End.
 	}
-	trsInsert := []types.TransformedReading{
+	trsInsert := []defs.TransformedReading{
 		{
 			Time:  times[0],
 			Mmol:  6.5,
@@ -114,7 +114,7 @@ func (suite *MongoTestSuite) TestReadWriteInsulinIntegration() {
 		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC), // Start.
 		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC), // End.
 	}
-	insInsert := []types.Insulin{
+	insInsert := []defs.Insulin{
 		{
 			Time:   times[0],
 			Type:   "testType",
@@ -151,7 +151,7 @@ func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
 		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC), // Start.
 		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC), // End.
 	}
-	carbsInsert := []types.Carb{
+	carbsInsert := []defs.Carb{
 		{
 			Time:   times[0],
 			Amount: 10,

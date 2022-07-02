@@ -3,8 +3,8 @@ package ghastly
 import (
 	"context"
 	"fmt"
+	"iv2/gourgeist/defs"
 	"iv2/gourgeist/ghastly/proto"
-	"iv2/gourgeist/types"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -21,9 +21,9 @@ type Plotter interface {
 }
 
 type PlotData struct {
-	Glucose []types.TransformedReading
-	Carbs   []types.Carb
-	Insulin []types.Insulin
+	Glucose []defs.TransformedReading
+	Carbs   []defs.Carb
+	Insulin []defs.Insulin
 }
 
 func New(conn *grpc.ClientConn, logger *zap.Logger) *Client {

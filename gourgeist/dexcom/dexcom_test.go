@@ -2,7 +2,7 @@ package dexcom
 
 import (
 	"context"
-	"iv2/gourgeist/types"
+	"iv2/gourgeist/defs"
 	"testing"
 	"time"
 
@@ -48,7 +48,7 @@ func (suite *DexcomTestSuite) TestCreateSession() {
 }
 
 func (suite *DexcomTestSuite) TestGetReadings() {
-	expectedTrs := []*types.TransformedReading{
+	expectedTrs := []*defs.TransformedReading{
 		{
 			Time:  time.Unix(int64(1651987807000/1000), 0),
 			Mmol:  float64(219) / 18,

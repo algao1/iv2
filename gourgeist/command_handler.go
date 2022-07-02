@@ -3,9 +3,9 @@ package gourgeist
 import (
 	"context"
 	"fmt"
+	"iv2/gourgeist/defs"
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/mg"
-	"iv2/gourgeist/types"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -85,7 +85,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 	}
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
-	_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
+	_, err = ch.Store.WriteCarbs(context.Background(), &defs.Carb{
 		Time:   time.Now().In(ch.Location),
 		Amount: float64(amount),
 	})
@@ -115,7 +115,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 	}
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
-	var carbs types.Carb
+	var carbs defs.Carb
 	if amount < 0 {
 		if err := ch.Store.DeleteByID(context.Background(), mg.CarbsCollection, &oid); err != nil {
 			return err
@@ -124,7 +124,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 		if err := ch.Store.DocByID(context.Background(), mg.CarbsCollection, &oid, &carbs); err != nil {
 			return err
 		}
-		_, err = ch.Store.WriteCarbs(context.Background(), &types.Carb{
+		_, err = ch.Store.WriteCarbs(context.Background(), &defs.Carb{
 			Time:   carbs.Time,
 			Amount: float64(amount),
 		})
@@ -152,7 +152,7 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 	}
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
-	_, err = ch.Store.WriteInsulin(context.Background(), &types.Insulin{
+	_, err = ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
 		Time:   time.Now().In(ch.Location),
 		Amount: units,
 		Type:   insulinType,
@@ -176,7 +176,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		return err
 	}
 
-	var ins types.Insulin
+	var ins defs.Insulin
 	if err := ch.Store.DocByID(context.Background(), mg.InsulinCollection, &oid, &ins); err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 			return err
 		}
 	} else {
-		_, err = ch.Store.WriteInsulin(context.Background(), &types.Insulin{
+		_, err = ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
 			Time:   ins.Time,
 			Amount: units,
 			Type:   itype,

@@ -1,7 +1,7 @@
 package discgo
 
 import (
-	"iv2/gourgeist/types"
+	"iv2/gourgeist/defs"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -62,12 +62,12 @@ var addInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 			Required:    true,
 			Choices: []discord.StringChoice{
 				{
-					Name:  types.RapidActing.String(),
-					Value: types.RapidActing.String(),
+					Name:  defs.RapidActing.String(),
+					Value: defs.RapidActing.String(),
 				},
 				{
-					Name:  types.SlowActing.String(),
-					Value: types.SlowActing.String(),
+					Name:  defs.SlowActing.String(),
+					Value: defs.SlowActing.String(),
 				},
 			},
 		},
@@ -94,12 +94,12 @@ var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 			Description: "Type of insulin (fast, slow).",
 			Choices: []discord.StringChoice{
 				{
-					Name:  types.RapidActing.String(),
-					Value: types.RapidActing.String(),
+					Name:  defs.RapidActing.String(),
+					Value: defs.RapidActing.String(),
 				},
 				{
-					Name:  types.SlowActing.String(),
-					Value: types.SlowActing.String(),
+					Name:  defs.SlowActing.String(),
+					Value: defs.SlowActing.String(),
 				},
 			},
 		},

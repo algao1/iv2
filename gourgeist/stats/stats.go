@@ -1,7 +1,7 @@
 package stats
 
 import (
-	"iv2/gourgeist/types"
+	"iv2/gourgeist/defs"
 )
 
 type RangeAnalysis struct {
@@ -10,7 +10,7 @@ type RangeAnalysis struct {
 	AboveRange float64
 }
 
-func TimeSpentInRange(trs []types.TransformedReading, lower, upper float64) RangeAnalysis {
+func TimeSpentInRange(trs []defs.TransformedReading, lower, upper float64) RangeAnalysis {
 	if len(trs) == 0 {
 		return RangeAnalysis{}
 	}

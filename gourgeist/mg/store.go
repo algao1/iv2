@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"iv2/gourgeist/types"
+	"iv2/gourgeist/defs"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -27,14 +27,14 @@ type Store interface {
 	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
 	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
 
-	WriteGlucose(ctx context.Context, tr *types.TransformedReading) (*mongo.UpdateResult, error)
-	ReadGlucose(ctx context.Context, start, end time.Time) ([]types.TransformedReading, error)
+	WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error)
+	ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error)
 
-	WriteInsulin(ctx context.Context, in *types.Insulin) (*mongo.UpdateResult, error)
-	ReadInsulin(ctx context.Context, start, end time.Time) ([]types.Insulin, error)
+	WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
+	ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error)
 
-	WriteCarbs(ctx context.Context, c *types.Carb) (*mongo.UpdateResult, error)
-	ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carb, error)
+	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
+	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
 	DeleteFile(ctx context.Context, fid string) error
@@ -73,7 +73,7 @@ func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *pri
 	return err
 }
 
-func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event types.TimePoint) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event defs.TimePoint) (*mongo.UpdateResult, error) {
 	ms.Logger.Debug("inserting event",
 		zap.String("collection", collection),
 		zap.Any("event", event))
@@ -127,36 +127,36 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 	return cur.All(ctx, slicePtr)
 }
 
-func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *types.TransformedReading) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, GlucoseCollection, tr)
 }
 
-func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]types.TransformedReading, error) {
-	var trs []types.TransformedReading
+func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error) {
+	var trs []defs.TransformedReading
 	if err := ms.getEventBetween(ctx, GlucoseCollection, start, end, &trs); err != nil {
 		return nil, fmt.Errorf("unable to read glucose: %w", err)
 	}
 	return trs, nil
 }
 
-func (ms *MongoStore) WriteInsulin(ctx context.Context, in *types.Insulin) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, InsulinCollection, in)
 }
 
-func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]types.Insulin, error) {
-	var ins []types.Insulin
+func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error) {
+	var ins []defs.Insulin
 	if err := ms.getEventBetween(ctx, InsulinCollection, start, end, &ins); err != nil {
 		return nil, fmt.Errorf("unable to read insulin: %w", err)
 	}
 	return ins, nil
 }
 
-func (ms *MongoStore) WriteCarbs(ctx context.Context, c *types.Carb) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, CarbsCollection, c)
 }
 
-func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]types.Carb, error) {
-	var carbs []types.Carb
+func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error) {
+	var carbs []defs.Carb
 	if err := ms.getEventBetween(ctx, CarbsCollection, start, end, &carbs); err != nil {
 		return nil, fmt.Errorf("unable to read carbs: %w", err)
 	}

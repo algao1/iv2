@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"iv2/gourgeist/types"
+	"iv2/gourgeist/defs"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -37,7 +37,7 @@ type Client struct {
 }
 
 type Source interface {
-	Readings(ctx context.Context, minutes, maxCount int) ([]*types.TransformedReading, error)
+	Readings(ctx context.Context, minutes, maxCount int) ([]*defs.TransformedReading, error)
 }
 
 type LoginRequest struct {
@@ -63,7 +63,7 @@ func New(accountName, password string, logger *zap.Logger) *Client {
 
 // Readings fetches readings from Dexcom's Share API, and applies a transformation.
 // Automatically creates a new session when it expires.
-func (c *Client) Readings(ctx context.Context, minutes, maxCount int) ([]*types.TransformedReading, error) {
+func (c *Client) Readings(ctx context.Context, minutes, maxCount int) ([]*defs.TransformedReading, error) {
 	if trs, err := c.readings(ctx, minutes, maxCount); err == nil {
 		return trs, nil
 	}
@@ -113,7 +113,7 @@ func (c *Client) CreateSession(ctx context.Context) (string, error) {
 	return c.sessionID, nil
 }
 
-func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*types.TransformedReading, error) {
+func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*defs.TransformedReading, error) {
 	if minutes > MinuteLimit || maxCount > CountLimit {
 		return nil, fmt.Errorf("window too large: minutes %d, maxCount %d", minutes, maxCount)
 	}
@@ -148,7 +148,7 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*types.
 	}
 	c.logger.Debug("received readings from share API", zap.Int("count", len(readings)))
 
-	trs := make([]*types.TransformedReading, len(readings))
+	trs := make([]*defs.TransformedReading, len(readings))
 	for i, r := range readings {
 		tr, err := transform(r)
 		if err != nil {
@@ -160,13 +160,13 @@ func (c *Client) readings(ctx context.Context, minutes, maxCount int) ([]*types.
 	return trs, nil
 }
 
-func transform(r *Reading) (*types.TransformedReading, error) {
+func transform(r *Reading) (*defs.TransformedReading, error) {
 	parsedTime := strings.Trim(r.WT[4:], "()")
 	unix, err := strconv.Atoi(parsedTime)
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert to int: %w", err)
 	}
-	return &types.TransformedReading{
+	return &defs.TransformedReading{
 		Time:  time.Unix(int64(unix/1000), 0),
 		Mmol:  r.Value / 18,
 		Trend: r.Trend,
