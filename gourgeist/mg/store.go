@@ -37,7 +37,7 @@ type Store interface {
 	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
 	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
 
-	WriteAlerts(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error)
+	WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error)
 	ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error)
 
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
@@ -174,7 +174,7 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]de
 	return carbs, nil
 }
 
-func (ms *MongoStore) WriteAlerts(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
 	return ms.writeEvent(ctx, AlertsCollection, al)
 }
 

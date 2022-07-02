@@ -29,6 +29,7 @@ type Discord struct {
 
 type Display interface {
 	GetMainMessage() (*discord.Message, error)
+	SendMessage(msgData api.SendMessageData, chName string) error
 	NewMainMessage(msgData api.SendMessageData) error
 	UpdateMainMessage(data api.EditMessageData) error
 
@@ -155,12 +156,12 @@ func (d *Discord) deleteOldMessages(chid discord.ChannelID, limit uint) (bool, e
 	return len(msgs) == 0, nil
 }
 
-func (d *Discord) SendMessage(msgData api.SendMessageData, chid discord.ChannelID) error {
-	_, err := d.Session.SendMessageComplex(d.channels[mainChannel], msgData)
+func (d *Discord) SendMessage(msgData api.SendMessageData, chName string) error {
+	_, err := d.Session.SendMessageComplex(d.channels[chName], msgData)
 	if err != nil {
 		return err
 	}
-	d.Logger.Debug("sent message", zap.Uint64("channel id", uint64(chid)))
+	d.Logger.Debug("sent message", zap.String("channel name", chName))
 	return nil
 }
 
@@ -174,7 +175,7 @@ func (d *Discord) NewMainMessage(msgData api.SendMessageData) error {
 		}
 	}
 
-	return d.SendMessage(msgData, d.channels[mainChannel])
+	return d.SendMessage(msgData, mainChannel)
 }
 
 func (d *Discord) UpdateMainMessage(data api.EditMessageData) error {

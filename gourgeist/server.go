@@ -20,6 +20,8 @@ const (
 	UpdaterInterval    = DownloaderInterval
 	timeoutInterval    = 2 * time.Second
 
+	alertsChannel = "alerts"
+
 	defaultDBName = "ichor"
 )
 
@@ -58,14 +60,17 @@ func Run(cfg defs.Config) {
 	err = dg.Setup(
 		strconv.Itoa(cfg.Discord.Guild),
 		discgo.Commands,
-		[]string{},
+		[]string{alertsChannel},
 		ch.InteractionCreateHandler(),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	conn, err := grpc.Dial(cfg.TrevenantAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(
+		cfg.TrevenantAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -80,6 +85,14 @@ func Run(cfg defs.Config) {
 		GlucoseConfig: cfg.Glucose,
 	}
 
+	an := Analyzer{
+		Display:       dg,
+		Store:         ms,
+		Logger:        cfg.Logger,
+		Location:      loc,
+		GlucoseConfig: cfg.Glucose,
+	}
+
 	f := Fetcher{
 		Source: dexcom,
 		Store:  ms,
@@ -87,7 +100,8 @@ func Run(cfg defs.Config) {
 	}
 
 	go ExecuteTask(DownloaderInterval, func() error { return f.FetchAndLoad() }, cfg.Logger)
-	ExecuteTask(DownloaderInterval, func() error { return pu.Update() }, cfg.Logger)
+	go ExecuteTask(DownloaderInterval, func() error { return pu.Update() }, cfg.Logger)
+	ExecuteTask(DownloaderInterval, func() error { return an.AnalyzeGlucose() }, cfg.Logger)
 }
 
 func ExecuteTask(interval time.Duration, task func() error, logger *zap.Logger) {

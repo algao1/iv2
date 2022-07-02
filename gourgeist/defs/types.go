@@ -53,6 +53,17 @@ func (c *Carb) GetTime() time.Time {
 	return c.Time
 }
 
+type Label int
+
+const (
+	HighGlucose Label = iota
+	LowGlucose
+)
+
+func (l Label) String() string {
+	return [...]string{"High Glucose", "Low Glucose"}[l]
+}
+
 type Alert struct {
 	ID     *primitive.ObjectID `bson:"_id,omitempty"`
 	Time   time.Time           `bson:"time"`

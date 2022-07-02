@@ -214,7 +214,7 @@ func (suite *MongoTestSuite) TestReadWriteAlertsIntegration() {
 	}
 
 	for _, alert := range alertsInsert {
-		res, err := suite.ms.WriteAlerts(ctx, &alert)
+		res, err := suite.ms.WriteAlert(ctx, &alert)
 		assert.NoError(suite.T(), err, "unable to write alerts to test db")
 		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
 	}
