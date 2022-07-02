@@ -2,4 +2,4 @@
 
 docker-compose down
 docker-compose pull
-docker-compose up -d
+docker-compose up --env-file iv2.env -d

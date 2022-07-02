@@ -29,5 +29,7 @@ type GlucoseConfig struct {
 }
 
 type MongoConfig struct {
-	URI string `yaml:"uri"`
+	URI      string `yaml:"uri"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }

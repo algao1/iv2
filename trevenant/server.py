@@ -14,7 +14,7 @@ if __name__ == "__main__":
     with open(config_file, "r") as file:
         config = yaml.safe_load(file)
 
-    store = Store(config["mongo"]["uri"])
+    store = Store(config["mongo"])
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_PlotterServicer_to_server(PlotterServicer(config, store), server)
 

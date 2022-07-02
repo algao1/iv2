@@ -2,6 +2,7 @@ package mg
 
 import (
 	"context"
+	"io/ioutil"
 	"iv2/gourgeist/defs"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -30,7 +32,18 @@ func TestMongoTestSuiteIntegration(t *testing.T) {
 }
 
 func (suite *MongoTestSuite) SetupSuite() {
-	ms, err := New(context.Background(), mongoURI, testDB, zap.NewExample())
+	// TODO: This is improper testing behaviour, I'll get back to it.
+	file, err := ioutil.ReadFile("../../config.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	config := defs.Config{}
+	if err = yaml.Unmarshal(file, &config); err != nil {
+		panic(err)
+	}
+
+	ms, err := New(context.Background(), config.Mongo, testDB, zap.NewExample())
 	if err != nil {
 		panic(err)
 	}

@@ -33,16 +33,18 @@ jobs:
         run: ./scripts/protoc.sh
         shell: bash
 
-      - name: Create config file
+      - name: Create config and env files
         run: |
           go run shuppet/shuppet.go \
             -dexcom-account=${{ secrets.DEXCOM_ACCOUNT }} \
             -dexcom-password=${{ secrets.DEXCOM_PASSWORD }} \
             -discord-token=${{ secrets.DISCORD_TOKEN }} \
-            -discord-guild=${{ secrets.DISCORD_GUILD }}
+            -discord-guild=${{ secrets.DISCORD_GUILD }} \
+            -mongo-username="${{ secrets.MONGO_USERNAME }}" \
+            -mongo-password="${{ secrets.MONGO_PASSWORD }}"
 
       - name: Build image
-        run: docker compose -f docker-compose.yaml build
+        run: docker compose -f docker-compose.yaml --env-file iv2.env build
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2

@@ -5,8 +5,11 @@ from pymongo import MongoClient
 
 
 class Store:
-    def __init__(self, uri: str) -> None:
-        self.client = MongoClient(uri, serverSelectionTimeoutMS=3000)
+    def __init__(self, cfg: dict) -> None:
+        uri, username, password = cfg["uri"], cfg["username"], cfg["password"]
+        self.client = MongoClient(
+            uri, username=username, password=password, serverSelectionTimeoutMS=3000
+        )
         self.client.server_info()  # Ensure connection is valid.
         self.database = self.client["ichor"]
 

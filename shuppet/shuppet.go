@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"iv2/gourgeist/defs"
 	"log"
@@ -20,6 +21,9 @@ func main() {
 	glucoseHigh := flag.Float64("glucose-high", 9, "upper bound for glucose")
 	glucoseTarget := flag.Float64("glucose-target", 6, "target glucose")
 
+	mongoUsername := flag.String("mongo-username", "admin", "mongo username")
+	mongoPassword := flag.String("mongo-password", "password", "mongo password")
+
 	flag.Parse()
 
 	cfg := defs.Config{
@@ -32,7 +36,9 @@ func main() {
 			Guild: *discordGuild,
 		},
 		Mongo: defs.MongoConfig{
-			URI: "mongodb://mongo:27017",
+			URI:      "mongodb://mongo:27017",
+			Username: *mongoUsername,
+			Password: *mongoPassword,
 		},
 		Glucose: defs.GlucoseConfig{
 			Low:    *glucoseLow,
@@ -49,6 +55,20 @@ func main() {
 	}
 
 	err = ioutil.WriteFile("docker-config.yaml", data, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	envVars := map[string]string{
+		"MONGO_USERNAME": *mongoUsername,
+		"MONGO_PASSWORD": *mongoPassword,
+	}
+	envString := ""
+	for k, v := range envVars {
+		envString += fmt.Sprintln(k + "=" + v)
+	}
+
+	err = ioutil.WriteFile("iv2.env", []byte(envString), 0666)
 	if err != nil {
 		log.Fatal(err)
 	}

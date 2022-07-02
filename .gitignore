@@ -11,3 +11,4 @@ ghastly
 # Configs.
 config.yaml
 docker-config.yaml
+*.env

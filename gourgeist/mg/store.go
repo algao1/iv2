@@ -47,8 +47,15 @@ type MongoStore struct {
 	DBName string
 }
 
-func New(ctx context.Context, uri, dbName string, logger *zap.Logger) (*MongoStore, error) {
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.Logger) (*MongoStore, error) {
+	mongoClient, err := mongo.Connect(
+		ctx,
+		options.Client().ApplyURI(cfg.URI),
+		options.Client().SetAuth(options.Credential{
+			Username: cfg.Username,
+			Password: cfg.Password,
+		}),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to mongo: %w", err)
 	}

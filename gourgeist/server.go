@@ -37,7 +37,7 @@ func Run(cfg defs.Config) {
 		}
 	}
 
-	ms, err := mg.New(ctx, cfg.Mongo.URI, defaultDBName, cfg.Logger)
+	ms, err := mg.New(ctx, cfg.Mongo, defaultDBName, cfg.Logger)
 	if err != nil {
 		panic(err)
 	}
