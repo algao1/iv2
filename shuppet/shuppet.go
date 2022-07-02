@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"io/ioutil"
-	"iv2/gourgeist"
+	"iv2/gourgeist/defs"
 	"log"
 
 	"gopkg.in/yaml.v2"
@@ -22,19 +22,19 @@ func main() {
 
 	flag.Parse()
 
-	cfg := gourgeist.Config{
-		Dexcom: gourgeist.DexcomConfig{
+	cfg := defs.Config{
+		Dexcom: defs.DexcomConfig{
 			Account:  *dexcomAccount,
 			Password: *dexcomPassword,
 		},
-		Discord: gourgeist.DiscordConfig{
+		Discord: defs.DiscordConfig{
 			Token: *discordToken,
 			Guild: *discordGuild,
 		},
-		Mongo: gourgeist.MongoConfig{
+		Mongo: defs.MongoConfig{
 			URI: "mongodb://mongo:27017",
 		},
-		Glucose: gourgeist.GlucoseConfig{
+		Glucose: defs.GlucoseConfig{
 			Low:    *glucoseLow,
 			High:   *glucoseHigh,
 			Target: *glucoseTarget,

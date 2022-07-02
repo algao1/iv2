@@ -3,6 +3,7 @@ package gourgeist
 import (
 	"context"
 	"fmt"
+	"iv2/gourgeist/defs"
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
 	"iv2/gourgeist/mg"
@@ -31,7 +32,7 @@ type PlotUpdater struct {
 
 	Logger        *zap.Logger
 	Location      *time.Location
-	GlucoseConfig GlucoseConfig
+	GlucoseConfig defs.GlucoseConfig
 }
 
 func (pu PlotUpdater) Update() error {

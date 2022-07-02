@@ -1,4 +1,4 @@
-package gourgeist
+package defs
 
 import "go.uber.org/zap"
 

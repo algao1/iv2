@@ -2,6 +2,7 @@ package gourgeist
 
 import (
 	"context"
+	"iv2/gourgeist/defs"
 	"iv2/gourgeist/dexcom"
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/ghastly"
@@ -22,7 +23,7 @@ const (
 	defaultDBName = "ichor"
 )
 
-func Run(cfg Config) {
+func Run(cfg defs.Config) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutInterval)
 	defer cancel()
 

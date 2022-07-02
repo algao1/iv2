@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"iv2/gourgeist"
+	"iv2/gourgeist/defs"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -18,7 +19,7 @@ func init() {
 
 func main() {
 	logger, _ := zap.NewDevelopment()
-	config := gourgeist.Config{Logger: logger}
+	config := defs.Config{Logger: logger}
 
 	file, err := ioutil.ReadFile(configFile)
 	if err != nil {
