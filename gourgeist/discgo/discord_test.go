@@ -1,8 +1,8 @@
 package discgo
 
 import (
+	"io/ioutil"
 	"iv2/gourgeist/defs"
-	"os"
 	"strconv"
 	"sync"
 	"testing"
@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
 
 type DiscordTestSuite struct {
@@ -31,12 +32,19 @@ func TestDiscordTestSuiteIntegration(t *testing.T) {
 }
 
 func (suite *DiscordTestSuite) SetupSuite() {
-	token, exist := os.LookupEnv("DISCORD_TOKEN")
-	if !exist {
-		panic("no token found")
+	// TODO: This is improper testing behaviour, I'll get back to it.
+	file, err := ioutil.ReadFile("../../config.yaml")
+	if err != nil {
+		panic(err)
 	}
+
+	config := defs.Config{}
+	if err = yaml.Unmarshal(file, &config); err != nil {
+		panic(err)
+	}
+
 	discgo, err := New(
-		token,
+		config.Discord.Token,
 		zap.NewExample(),
 		time.Local,
 	)
