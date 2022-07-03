@@ -81,18 +81,18 @@ func (an *Analyzer) genAndSendAlert(label, reason string) error {
 		return err
 	}
 
-	err = an.Display.SendMessage(api.SendMessageData{
-		Content: "@everyone",
-		Embeds: []discord.Embed{
+	embed := discord.Embed{
+		Fields: []discord.EmbedField{
 			{
-				Fields: []discord.EmbedField{
-					{
-						Name:  "⚠️ " + label,
-						Value: reason,
-					},
-				},
+				Name:  "⚠️ " + label,
+				Value: reason,
 			},
 		},
+	}
+
+	err = an.Display.SendMessage(api.SendMessageData{
+		Content: "@everyone",
+		Embeds:  []discord.Embed{embed},
 		AllowedMentions: &api.AllowedMentions{
 			Parse: []api.AllowedMentionType{api.AllowEveryoneMention},
 		},
