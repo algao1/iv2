@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -61,7 +62,7 @@ func (suite *MongoTestSuite) TestDocByIDIntegration() {
 	doc := defs.Insulin{ID: &id}
 
 	var fetchedDoc defs.Insulin
-	_, err := suite.ms.writeEvent(ctx, "test", &doc)
+	_, err := suite.ms.Upsert(ctx, "test", bson.M{}, &doc)
 	assert.NoError(suite.T(), err)
 	assert.NoError(suite.T(), suite.ms.DocByID(ctx, "test", &id, &fetchedDoc), "unable to fetch document by id")
 	assert.EqualValues(suite.T(), doc, fetchedDoc, "not same document")
@@ -73,7 +74,7 @@ func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
 	doc := defs.Insulin{ID: &id}
 
 	var fetchedDoc defs.Insulin
-	_, err := suite.ms.writeEvent(ctx, "test", &doc)
+	_, err := suite.ms.Upsert(ctx, "test", bson.M{}, &doc)
 	assert.NoError(suite.T(), err)
 	assert.NoError(suite.T(), suite.ms.DeleteByID(ctx, "test", &id))
 	assert.Error(suite.T(),

@@ -27,6 +27,7 @@ const (
 type Store interface {
 	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
 	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
+	Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
 
 	WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error)
 	ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error)
@@ -75,6 +76,29 @@ func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primit
 	return sr.Decode(doc)
 }
 
+func (ms *MongoStore) Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
+	ms.Logger.Debug("upeserting document",
+		zap.String("collection", collection),
+		zap.Any("document", doc))
+
+	res, err := ms.Client.
+		Database(ms.DBName).
+		Collection(collection).
+		UpdateOne(ctx, filter, bson.M{
+			"$set": doc},
+			options.Update().SetUpsert(true),
+		)
+	if err != nil {
+		ms.Logger.Debug("unable to upsert document",
+			zap.String("collection", collection),
+			zap.Any("document", doc),
+			zap.Error(err))
+		return nil, fmt.Errorf("unable to upsert document: %w", err)
+	}
+
+	return res, err
+}
+
 func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error {
 	ms.Logger.Debug("deleting document by id",
 		zap.String("collection", collection),
@@ -84,30 +108,7 @@ func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *pri
 	return err
 }
 
-func (ms *MongoStore) writeEvent(ctx context.Context, collection string, event defs.TimePoint) (*mongo.UpdateResult, error) {
-	ms.Logger.Debug("inserting event",
-		zap.String("collection", collection),
-		zap.Any("event", event))
-
-	res, err := ms.Client.
-		Database(ms.DBName).
-		Collection(collection).
-		UpdateOne(ctx, bson.M{
-			"time": event.GetTime(),
-		}, bson.M{"$set": event}, options.Update().SetUpsert(true))
-
-	if err != nil {
-		ms.Logger.Debug("unable to insert event",
-			zap.String("collection", collection),
-			zap.Any("event", event),
-			zap.Error(err))
-		return nil, fmt.Errorf("unable to insert event: %w", err)
-	}
-
-	return res, nil
-}
-
-func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
+func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
 	ms.Logger.Debug("reading events",
 		zap.String("collection", collection),
 		zap.Time("start", start),
@@ -139,48 +140,48 @@ func (ms *MongoStore) getEventBetween(ctx context.Context, collection string, st
 }
 
 func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
-	return ms.writeEvent(ctx, GlucoseCollection, tr)
+	return ms.Upsert(ctx, GlucoseCollection, bson.M{"time": tr.Time}, tr)
 }
 
 func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error) {
 	var trs []defs.TransformedReading
-	if err := ms.getEventBetween(ctx, GlucoseCollection, start, end, &trs); err != nil {
+	if err := ms.getEventsBetween(ctx, GlucoseCollection, start, end, &trs); err != nil {
 		return nil, fmt.Errorf("unable to read glucose: %w", err)
 	}
 	return trs, nil
 }
 
 func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
-	return ms.writeEvent(ctx, InsulinCollection, in)
+	return ms.Upsert(ctx, InsulinCollection, bson.M{"time": in.Time}, in)
 }
 
 func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error) {
 	var ins []defs.Insulin
-	if err := ms.getEventBetween(ctx, InsulinCollection, start, end, &ins); err != nil {
+	if err := ms.getEventsBetween(ctx, InsulinCollection, start, end, &ins); err != nil {
 		return nil, fmt.Errorf("unable to read insulin: %w", err)
 	}
 	return ins, nil
 }
 
 func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
-	return ms.writeEvent(ctx, CarbsCollection, c)
+	return ms.Upsert(ctx, CarbsCollection, bson.M{"time": c.Time}, c)
 }
 
 func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error) {
 	var carbs []defs.Carb
-	if err := ms.getEventBetween(ctx, CarbsCollection, start, end, &carbs); err != nil {
+	if err := ms.getEventsBetween(ctx, CarbsCollection, start, end, &carbs); err != nil {
 		return nil, fmt.Errorf("unable to read carbs: %w", err)
 	}
 	return carbs, nil
 }
 
 func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
-	return ms.writeEvent(ctx, AlertsCollection, al)
+	return ms.Upsert(ctx, AlertsCollection, bson.M{"time": al.Time}, al)
 }
 
 func (ms *MongoStore) ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error) {
 	var alerts []defs.Alert
-	if err := ms.getEventBetween(ctx, AlertsCollection, start, end, &alerts); err != nil {
+	if err := ms.getEventsBetween(ctx, AlertsCollection, start, end, &alerts); err != nil {
 		return nil, fmt.Errorf("unable to read alerts: %w", err)
 	}
 	return alerts, nil
