@@ -130,7 +130,7 @@ class PlotterServicer(ps):
                     line_width=0,
                     layer="below",
                 ),
-                dict( # Lower rectangle.
+                dict(  # Lower rectangle.
                     type="rect",
                     xref="x",
                     yref="y",
