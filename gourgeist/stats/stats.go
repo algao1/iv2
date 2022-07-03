@@ -15,16 +15,16 @@ func TimeSpentInRange(trs []defs.TransformedReading, lower, upper float64) Range
 		return RangeAnalysis{}
 	}
 
-	below, in, above := 0.0, 0.0, 0.0
+	below, above := 0.0, 0.0
 	for _, tr := range trs {
-		if tr.Mmol <= lower {
+		switch {
+		case tr.Mmol <= 4:
 			below++
-		} else if tr.Mmol >= upper {
+		case tr.Mmol >= 9:
 			above++
-		} else {
-			in++
 		}
 	}
+	in := float64(len(trs)) - below - above
 
 	total := float64(len(trs))
 	return RangeAnalysis{
