@@ -25,6 +25,8 @@ var inlineBlankField = discord.EmbedField{
 	Inline: true,
 }
 
+// TODO: Need to rename, not only updates plots, but is responsible
+// 	for also updating the 'main' display.
 type PlotUpdater struct {
 	Display discgo.Display
 	Plotter ghastly.Plotter
