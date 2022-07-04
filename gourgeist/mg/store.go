@@ -140,7 +140,13 @@ func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, s
 }
 
 func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
-	return ms.Upsert(ctx, GlucoseCollection, bson.M{"time": tr.Time}, tr)
+	filter := bson.M{}
+	if tr.ID != nil {
+		filter["_id"] = tr.ID
+	} else {
+		filter["time"] = tr.Time
+	}
+	return ms.Upsert(ctx, GlucoseCollection, filter, tr)
 }
 
 func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error) {
@@ -152,7 +158,13 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 }
 
 func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
-	return ms.Upsert(ctx, InsulinCollection, bson.M{"time": in.Time}, in)
+	filter := bson.M{}
+	if in.ID != nil {
+		filter["_id"] = in.ID
+	} else {
+		filter["time"] = in.Time
+	}
+	return ms.Upsert(ctx, InsulinCollection, filter, in)
 }
 
 func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error) {
@@ -164,7 +176,13 @@ func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]
 }
 
 func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
-	return ms.Upsert(ctx, CarbsCollection, bson.M{"time": c.Time}, c)
+	filter := bson.M{}
+	if c.ID != nil {
+		filter["_id"] = c.ID
+	} else {
+		filter["time"] = c.Time
+	}
+	return ms.Upsert(ctx, CarbsCollection, filter, c)
 }
 
 func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error) {
@@ -176,7 +194,13 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]de
 }
 
 func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
-	return ms.Upsert(ctx, AlertsCollection, bson.M{"time": al.Time}, al)
+	filter := bson.M{}
+	if al.ID != nil {
+		filter["_id"] = al.ID
+	} else {
+		filter["time"] = al.Time
+	}
+	return ms.Upsert(ctx, AlertsCollection, filter, al)
 }
 
 func (ms *MongoStore) ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error) {
