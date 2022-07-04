@@ -47,7 +47,12 @@ var editCarbsCmdData api.CreateCommandData = api.CreateCommandData{
 		&discord.IntegerOption{
 			OptionName:  "amount",
 			Description: "New amount of carbohydrates (grams). Negative values indicate deletion.",
-			Required:    true,
+			Required:    false,
+		},
+		&discord.IntegerOption{
+			OptionName:  "offset",
+			Description: "Time offset.",
+			Required:    false,
 		},
 	},
 }
@@ -106,6 +111,11 @@ var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 		&discord.IntegerOption{
 			OptionName:  "units",
 			Description: "New units of insulin. Negative values indicate deletion.",
+		},
+		&discord.IntegerOption{
+			OptionName:  "offset",
+			Description: "Time offset.",
+			Required:    false,
 		},
 	},
 }

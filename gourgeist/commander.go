@@ -12,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
@@ -40,7 +41,6 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 
 		if err != nil {
 			ch.Logger.Debug("unable to handle command", zap.Error(err))
-			return
 		}
 
 		resp := api.InteractionResponse{
@@ -107,31 +107,51 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 	if err != nil {
 		return err
 	}
-	amount, _ := data.Options[1].FloatValue()
-
-	oldMessage, err := ch.Display.GetMainMessage()
-	if err != nil {
-		return fmt.Errorf("unable to complete editcarbs command: %w", err)
-	}
-	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
 	var carbs defs.Carb
+	if err := ch.Store.DocByID(context.Background(), mg.CarbsCollection, &oid, &carbs); err != nil {
+		return err
+	}
+
+	var amount = carbs.Amount
+	var minuteOffset int64
+
+	for _, opt := range data.Options[1:] {
+		switch opt.Name {
+		case "amount":
+			amount, err = opt.FloatValue()
+		case "offset":
+			minuteOffset, err = opt.IntValue()
+		}
+	}
+	if err != nil {
+		return err
+	}
+
 	if amount < 0 {
 		if err := ch.Store.DeleteByID(context.Background(), mg.CarbsCollection, &oid); err != nil {
 			return err
 		}
 	} else {
-		if err := ch.Store.DocByID(context.Background(), mg.CarbsCollection, &oid, &carbs); err != nil {
-			return err
+		newTime := carbs.Time.Add(time.Duration(minuteOffset * int64(time.Minute)))
+		if newTime.After(time.Now()) {
+			return fmt.Errorf("unable to set time after current time")
 		}
-		_, err = ch.Store.WriteCarbs(context.Background(), &defs.Carb{
-			Time:   carbs.Time,
+
+		_, err = ch.Store.Upsert(context.Background(), mg.CarbsCollection, bson.M{"_id": oid}, &defs.Carb{
+			Time:   newTime,
 			Amount: float64(amount),
 		})
 		if err != nil {
 			return fmt.Errorf("unable to edit carbs: %w", err)
 		}
 	}
+
+	oldMessage, err := ch.Display.GetMainMessage()
+	if err != nil {
+		return fmt.Errorf("unable to complete editcarbs command: %w", err)
+	}
+	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
 
 	err = ch.updateWithEvent(oldMessage)
 	if err != nil {
@@ -182,18 +202,41 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 	}
 
 	var units = ins.Amount
-	var itype = ins.Type
+	var insType = ins.Type
+	var minuteOffset int64
 
 	for _, opt := range data.Options[1:] {
 		switch opt.Name {
 		case "units":
 			units, err = opt.FloatValue()
 		case "type":
-			itype = opt.String()
+			insType = opt.String()
+		case "offset":
+			minuteOffset, err = opt.IntValue()
 		}
 	}
 	if err != nil {
 		return err
+	}
+
+	if units < 0 {
+		if err := ch.Store.DeleteByID(context.Background(), mg.InsulinCollection, &oid); err != nil {
+			return err
+		}
+	} else {
+		newTime := ins.Time.Add(time.Duration(minuteOffset * int64(time.Minute)))
+		if newTime.After(time.Now()) {
+			return fmt.Errorf("unable to set time after current time")
+		}
+
+		_, err = ch.Store.Upsert(context.Background(), mg.InsulinCollection, bson.M{"_id": oid}, &defs.Insulin{
+			Time:   newTime,
+			Amount: units,
+			Type:   insType,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to edit insulin: %w", err)
+		}
 	}
 
 	oldMessage, err := ch.Display.GetMainMessage()
@@ -201,21 +244,6 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		return fmt.Errorf("unable to complete editcarbs command: %w", err)
 	}
 	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
-
-	if units < 0 {
-		if err := ch.Store.DeleteByID(context.Background(), mg.InsulinCollection, &oid); err != nil {
-			return err
-		}
-	} else {
-		_, err = ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
-			Time:   ins.Time,
-			Amount: units,
-			Type:   itype,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to edit insulin: %w", err)
-		}
-	}
 
 	err = ch.updateWithEvent(oldMessage)
 	if err != nil {
