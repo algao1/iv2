@@ -25,22 +25,41 @@ const (
 )
 
 type Store interface {
+	DocumentStore
+	GlucoseStore
+	InsulinStore
+	CarbStore
+	AlertStore
+	FileStore
+}
+
+type DocumentStore interface {
 	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
 	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
 	Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
+}
 
+type GlucoseStore interface {
 	WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error)
 	ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error)
+}
 
+type InsulinStore interface {
 	WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
 	ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error)
+}
 
+type CarbStore interface {
 	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
 	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
+}
 
+type AlertStore interface {
 	WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error)
 	ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error)
+}
 
+type FileStore interface {
 	ReadFile(ctx context.Context, fid string) (io.Reader, error)
 	DeleteFile(ctx context.Context, fid string) error
 }
