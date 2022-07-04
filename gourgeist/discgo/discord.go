@@ -28,12 +28,18 @@ type Discord struct {
 }
 
 type Display interface {
-	GetMainMessage() (*discord.Message, error)
+	Messager
+	Interactioner
+}
+
+type Messager interface {
 	SendMessage(msgData api.SendMessageData, chName string) error
+	GetMainMessage() (*discord.Message, error)
 	NewMainMessage(msgData api.SendMessageData) error
 	UpdateMainMessage(data api.EditMessageData) error
+}
 
-	// TODO: Eventually separate these out to their own interfaces, too much clutter currently.
+type Interactioner interface {
 	RespondInteraction(id discord.InteractionID, token string, resp api.InteractionResponse) error
 	DeleteInteractionResponse(appID discord.AppID, token string) error
 }

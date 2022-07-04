@@ -35,9 +35,9 @@ type PlotterStore interface {
 // TODO: Need to rename, not only updates plots, but is responsible
 // 	for also updating the 'main' display.
 type PlotUpdater struct {
-	Display discgo.Display
-	Plotter ghastly.Plotter
-	Store   PlotterStore
+	Messager discgo.Messager
+	Plotter  ghastly.Plotter
+	Store    PlotterStore
 
 	Logger        *zap.Logger
 	Location      *time.Location
@@ -54,7 +54,7 @@ func (pu PlotUpdater) Update() error {
 		return fmt.Errorf("no glucose readings found")
 	}
 
-	prevMsg, err := pu.Display.GetMainMessage()
+	prevMsg, err := pu.Messager.GetMainMessage()
 	if err != nil {
 		pu.Logger.Debug("unable to get main message", zap.Error(err))
 	}
@@ -110,7 +110,7 @@ func (pu PlotUpdater) Update() error {
 		msgData.Files = append(msgData.Files, sendpart.File{Name: fr.GetName(), Reader: fileReader})
 	}
 
-	return pu.Display.NewMainMessage(msgData)
+	return pu.Messager.NewMainMessage(msgData)
 }
 
 func (pu *PlotUpdater) getPlotData() (*ghastly.PlotData, error) {

@@ -24,8 +24,8 @@ type AnalyzerStore interface {
 }
 
 type Analyzer struct {
-	Display discgo.Display
-	Store   AnalyzerStore
+	Messager discgo.Messager
+	Store    AnalyzerStore
 
 	Logger        *zap.Logger
 	Location      *time.Location
@@ -95,7 +95,7 @@ func (an *Analyzer) genAndSendAlert(label, reason string) error {
 		},
 	}
 
-	err = an.Display.SendMessage(api.SendMessageData{
+	err = an.Messager.SendMessage(api.SendMessageData{
 		Content: "@everyone",
 		Embeds:  []discord.Embed{embed},
 		AllowedMentions: &api.AllowedMentions{

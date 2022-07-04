@@ -77,7 +77,7 @@ func Run(cfg defs.Config) {
 	gh := ghastly.New(conn, cfg.Logger)
 
 	pu := PlotUpdater{
-		Display:       dg,
+		Messager:      dg,
 		Plotter:       gh,
 		Store:         ms,
 		Logger:        cfg.Logger,
@@ -86,7 +86,7 @@ func Run(cfg defs.Config) {
 	}
 
 	an := Analyzer{
-		Display:       dg,
+		Messager:      dg,
 		Store:         ms,
 		Logger:        cfg.Logger,
 		Location:      loc,

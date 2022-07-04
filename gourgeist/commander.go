@@ -28,8 +28,13 @@ type CommanderStore interface {
 	mg.CarbStore
 }
 
+type CommanderDisplay interface {
+	discgo.Messager
+	discgo.Interactioner
+}
+
 type CommandHandler struct {
-	Display discgo.Display
+	Display CommanderDisplay
 	Store   CommanderStore
 
 	Logger   *zap.Logger
