@@ -22,9 +22,15 @@ const (
 	LogLimit       = 5
 )
 
+type CommanderStore interface {
+	mg.DocumentStore
+	mg.InsulinStore
+	mg.CarbStore
+}
+
 type CommandHandler struct {
 	Display discgo.Display
-	Store   mg.Store
+	Store   CommanderStore
 
 	Logger   *zap.Logger
 	Location *time.Location
@@ -267,7 +273,12 @@ func (ch *CommandHandler) updateWithEvent(oldMessage *discord.Message) error {
 	})
 }
 
-func newDescription(s mg.Store, loc *time.Location) (string, error) {
+type DescriptionStore interface {
+	mg.InsulinStore
+	mg.CarbStore
+}
+
+func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
 	end := time.Now().In(loc)
 	start := end.Add(-ExpireDuration)
 

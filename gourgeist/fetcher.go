@@ -9,9 +9,13 @@ import (
 	"go.uber.org/zap"
 )
 
+type FetcherStore interface {
+	mg.GlucoseStore
+}
+
 type Fetcher struct {
 	Source dexcom.Source
-	Store  mg.Store
+	Store  FetcherStore
 
 	Logger *zap.Logger
 }

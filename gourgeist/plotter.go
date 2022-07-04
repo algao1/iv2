@@ -25,12 +25,19 @@ var inlineBlankField = discord.EmbedField{
 	Inline: true,
 }
 
+type PlotterStore interface {
+	mg.GlucoseStore
+	mg.InsulinStore
+	mg.CarbStore
+	mg.FileStore
+}
+
 // TODO: Need to rename, not only updates plots, but is responsible
 // 	for also updating the 'main' display.
 type PlotUpdater struct {
 	Display discgo.Display
 	Plotter ghastly.Plotter
-	Store   mg.Store
+	Store   PlotterStore
 
 	Logger        *zap.Logger
 	Location      *time.Location

@@ -18,9 +18,14 @@ const (
 	LowGlucoseLabel  = "Low Glucose"
 )
 
+type AnalyzerStore interface {
+	mg.GlucoseStore
+	mg.AlertStore
+}
+
 type Analyzer struct {
 	Display discgo.Display
-	Store   mg.Store
+	Store   AnalyzerStore
 
 	Logger        *zap.Logger
 	Location      *time.Location

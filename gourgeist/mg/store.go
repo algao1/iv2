@@ -24,15 +24,6 @@ const (
 	FilesCollection   = "fs.files"
 )
 
-type Store interface {
-	DocumentStore
-	GlucoseStore
-	InsulinStore
-	CarbStore
-	AlertStore
-	FileStore
-}
-
 type DocumentStore interface {
 	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
 	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
