@@ -12,7 +12,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
@@ -138,7 +137,8 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 			return fmt.Errorf("unable to set time after current time")
 		}
 
-		_, err = ch.Store.Upsert(context.Background(), mg.CarbsCollection, bson.M{"_id": oid}, &defs.Carb{
+		_, err = ch.Store.WriteCarbs(context.Background(), &defs.Carb{
+			ID:     &oid,
 			Time:   newTime,
 			Amount: float64(amount),
 		})
@@ -229,7 +229,8 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 			return fmt.Errorf("unable to set time after current time")
 		}
 
-		_, err = ch.Store.Upsert(context.Background(), mg.InsulinCollection, bson.M{"_id": oid}, &defs.Insulin{
+		_, err = ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
+			ID:     &oid,
 			Time:   newTime,
 			Amount: units,
 			Type:   insType,
