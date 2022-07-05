@@ -19,7 +19,12 @@ func TestStatsTestSuite(t *testing.T) {
 }
 
 func (suite *StatsTestSuite) TestTimeSpentInRange() {
-	trs := generateReadings(15, 60, 25, 4, 9)
+	// trs := generateReadings(15, 60, 25, 4, 9)
+	trs := genReadings([]metaReadings{
+		{size: 15, min: 2, max: 4},
+		{size: 60, min: 4, max: 9},
+		{size: 25, min: 9, max: 20},
+	}...)
 	ra := TimeSpentInRange(trs, 4, 9)
 
 	assert.Equal(suite.T(), 15.0/100, ra.BelowRange, "below range should match")
@@ -27,25 +32,28 @@ func (suite *StatsTestSuite) TestTimeSpentInRange() {
 	assert.Equal(suite.T(), 25.0/100, ra.AboveRange, "above range should match")
 }
 
-func generateReadings(below, in, above int, belowThreshold, aboveThreshold float64) []defs.TransformedReading {
-	now := time.Now()
-	n := below + in + above
+type metaReadings struct {
+	size int
+	min  float64
+	max  float64
+}
 
-	trs := make([]defs.TransformedReading, n)
-	for i := 0; i < n; i++ {
-		mmol := belowThreshold + rand.Float64()*(aboveThreshold-belowThreshold)
-		if below > 0 {
-			mmol = rand.Float64() * belowThreshold
-			below--
-		} else if above > 0 {
-			mmol = aboveThreshold + rand.Float64()
-			above--
-		}
-		trs[i] = defs.TransformedReading{
-			Time:  now.Add(time.Duration(i*5) * time.Minute),
-			Mmol:  mmol,
-			Trend: "Flat",
+func genReadings(mrs ...metaReadings) []defs.TransformedReading {
+	now := time.Now()
+	trs := make([]defs.TransformedReading, 0)
+
+	count := 0
+	for _, mr := range mrs {
+		for i := 0; i < mr.size; i++ {
+			mmol := mr.min + rand.Float64()*(mr.max-mr.min)
+			trs = append(trs, defs.TransformedReading{
+				Time:  now.Add(time.Duration(count*5) * time.Minute),
+				Mmol:  mmol,
+				Trend: "Flat",
+			})
+			count++
 		}
 	}
+
 	return trs
 }
