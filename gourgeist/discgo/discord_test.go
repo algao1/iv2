@@ -26,7 +26,7 @@ type DiscordTestSuite struct {
 	discgo *Discord
 }
 
-func TestDiscordTestSuiteIntegration(t *testing.T) {
+func TestDiscordIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}

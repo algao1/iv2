@@ -17,7 +17,7 @@ type DexcomTestSuite struct {
 	dexcom *Client
 }
 
-func TestDexcomTestSuite(t *testing.T) {
+func TestDexcom(t *testing.T) {
 	suite.Run(t, new(DexcomTestSuite))
 }
 

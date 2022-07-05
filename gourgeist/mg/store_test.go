@@ -25,7 +25,7 @@ type MongoTestSuite struct {
 	ms *MongoStore
 }
 
-func TestMongoTestSuiteIntegration(t *testing.T) {
+func TestMongoIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
@@ -85,7 +85,7 @@ func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
 
 // TODO: Clean up these unit tests to reduce duplicate code.
 
-func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
+func (suite *MongoTestSuite) TestRWGlucoseIntegration() {
 	ctx := context.Background()
 	times := []time.Time{
 		time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
@@ -122,7 +122,7 @@ func (suite *MongoTestSuite) TestReadWriteGlucoseIntegration() {
 	}
 }
 
-func (suite *MongoTestSuite) TestReadWriteInsulinIntegration() {
+func (suite *MongoTestSuite) TestRWInsulinIntegration() {
 	ctx := context.Background()
 	times := []time.Time{
 		time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
@@ -159,7 +159,7 @@ func (suite *MongoTestSuite) TestReadWriteInsulinIntegration() {
 	}
 }
 
-func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
+func (suite *MongoTestSuite) TestRWCarbsIntegration() {
 	ctx := context.Background()
 	times := []time.Time{
 		time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
@@ -193,7 +193,7 @@ func (suite *MongoTestSuite) TestReadWriteCarbsIntegration() {
 	}
 }
 
-func (suite *MongoTestSuite) TestReadWriteAlertsIntegration() {
+func (suite *MongoTestSuite) TestRWAlertsIntegration() {
 	ctx := context.Background()
 	times := []time.Time{
 		time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
