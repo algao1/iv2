@@ -17,9 +17,8 @@ import (
 )
 
 const (
-	CmdTimeFormat  = "03:04 PM"
-	ExpireDuration = 8 * time.Hour
-	LogLimit       = 5
+	CmdTimeFormat = "03:04 PM"
+	logLimit      = 7
 )
 
 type CommanderStore interface {
@@ -283,9 +282,11 @@ type DescriptionStore interface {
 	mg.CarbStore
 }
 
+// TODO: Shouldn't really be put here, need to relocate.
+
 func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
 	end := time.Now().In(loc)
-	start := end.Add(-ExpireDuration)
+	start := end.Add(lookbackInterval)
 
 	ins, err := s.ReadInsulin(context.Background(), start, end)
 	if err != nil {
@@ -297,7 +298,7 @@ func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
 		return "", err
 	}
 
-	max_len := LogLimit
+	max_len := logLimit
 	if len(ins)+len(carbs) < max_len {
 		max_len = len(ins) + len(carbs)
 	}
