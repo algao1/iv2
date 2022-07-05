@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"iv2/gourgeist/defs"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,10 +17,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	testChannel = "test"
+)
+
 type DiscordTestSuite struct {
 	suite.Suite
 	discgo *Discord
-	gid    discord.GuildID
 }
 
 func TestDiscordTestSuiteIntegration(t *testing.T) {
@@ -45,55 +47,40 @@ func (suite *DiscordTestSuite) SetupSuite() {
 
 	discgo, err := New(
 		config.Discord.Token,
+		strconv.Itoa(config.Discord.Guild),
 		zap.NewExample(),
 		time.Local,
 	)
 	if err != nil {
 		panic(err)
 	}
+
+	// TODO: Need to redo this eventually, not a good system.
+	discgo.mainCh = testChannel
 	suite.discgo = discgo
-
-	var wg sync.WaitGroup
-
-	guilds, err := suite.discgo.Session.Guilds(10)
-	if err != nil {
-		panic(err)
-	}
-
-	// Delete uncleared test guilds.
-	for _, guild := range guilds {
-		if guild.Name == "test" {
-			wg.Add(1)
-			go suite.discgo.Session.DeleteGuild(guild.ID)
-		}
-	}
-
-	wg.Wait()
 }
 
 func (suite *DiscordTestSuite) BeforeTest(_, _ string) {
-	suite.T().Log("setup test guild")
-	guild, err := suite.discgo.Session.CreateGuild(api.CreateGuildData{Name: "test"})
-	assert.NoError(suite.T(), err, "unable to create test guild")
-	suite.gid = guild.ID
-
-	err = suite.discgo.Setup(suite.gid.String(), []api.CreateCommandData{}, []string{})
+	err := suite.discgo.Setup([]api.CreateCommandData{}, []string{})
 	assert.NoError(suite.T(), err, "unable to complete setup")
 }
 
 func (suite *DiscordTestSuite) AfterTest(_, _ string) {
-	suite.T().Log("teardown test guild")
-	err := suite.discgo.Session.DeleteGuild(suite.gid)
-	assert.NoError(suite.T(), err, "unable to delete test guild")
+	for name, id := range suite.discgo.channels {
+		if name == testChannel {
+			err := suite.discgo.Session.DeleteChannel(id, api.AuditLogReason("delete test channel"))
+			assert.NoError(suite.T(), err, "unable to delete test channel")
+		}
+	}
 }
 
 func (suite *DiscordTestSuite) TestSetupIntegration() {
-	channels, err := suite.discgo.Session.Channels(suite.gid)
+	channels, err := suite.discgo.Session.Channels(suite.discgo.gid)
 	assert.NoError(suite.T(), err, "unable to get channels")
 
 	var chFound bool
 	for _, ch := range channels {
-		if ch.Name == mainChannel {
+		if ch.Name == testChannel {
 			chFound = true
 		}
 	}

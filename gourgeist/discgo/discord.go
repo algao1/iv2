@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	TimeFormat = "2006-01-02 03:04 PM"
-
+	TimeFormat  = "2006-01-02 03:04 PM"
 	mainChannel = "iv2"
 )
 
@@ -24,6 +23,7 @@ type Discord struct {
 	Location *time.Location
 
 	gid      discord.GuildID
+	mainCh   string
 	channels map[string]discord.ChannelID
 }
 
@@ -44,7 +44,7 @@ type Interactioner interface {
 	DeleteInteractionResponse(appID discord.AppID, token string) error
 }
 
-func New(token string, logger *zap.Logger, loc *time.Location) (*Discord, error) {
+func New(token, guildID string, logger *zap.Logger, loc *time.Location) (*Discord, error) {
 	ses := session.NewWithIntents("Bot "+token, gateway.IntentGuildMessages)
 
 	ses.AddIntents(gateway.IntentGuilds)
@@ -54,22 +54,23 @@ func New(token string, logger *zap.Logger, loc *time.Location) (*Discord, error)
 		return nil, fmt.Errorf("unable to open session: %w", err)
 	}
 
+	sf, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Discord{
 		Session:  ses,
 		Logger:   logger,
 		Location: loc,
+		gid:      discord.GuildID(sf),
+		mainCh:   mainChannel, // TODO: Maybe pass responsibility to user?
 	}, nil
 }
 
 // TODO: Function signature is overloaded, need addressing.
 
-func (d *Discord) Setup(guildID string, cmds []api.CreateCommandData, channels []string, handlers ...interface{}) error {
-	sf, err := discord.ParseSnowflake(guildID)
-	if err != nil {
-		return err
-	}
-	d.gid = discord.GuildID(sf)
-
+func (d *Discord) Setup(cmds []api.CreateCommandData, channels []string, handlers ...interface{}) error {
 	app, err := d.Session.CurrentApplication()
 	if err != nil {
 		return fmt.Errorf("unable to get current application: %w", err)
@@ -112,7 +113,7 @@ func (d *Discord) Setup(guildID string, cmds []api.CreateCommandData, channels [
 	}
 
 	// Ensure main channel is created.
-	channels = append(channels, mainChannel)
+	channels = append(channels, d.mainCh)
 
 	for _, chName := range channels {
 		if _, ok := d.channels[chName]; !ok {
@@ -133,7 +134,7 @@ func (d *Discord) Setup(guildID string, cmds []api.CreateCommandData, channels [
 }
 
 func (d *Discord) GetMainMessage() (*discord.Message, error) {
-	msgs, err := d.Session.Messages(d.channels[mainChannel], 10)
+	msgs, err := d.Session.Messages(d.channels[d.mainCh], 10)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get messages: %w", err)
 	}
@@ -144,18 +145,18 @@ func (d *Discord) GetMainMessage() (*discord.Message, error) {
 }
 
 func (d *Discord) deleteOldMessages(chid discord.ChannelID, limit uint) (bool, error) {
-	msgs, err := d.Session.Messages(d.channels[mainChannel], limit)
+	msgs, err := d.Session.Messages(d.channels[d.mainCh], limit)
 	if err != nil {
 		return false, fmt.Errorf("unable to get messages: %w", err)
 	}
 
 	for _, msg := range msgs {
-		if err = d.Session.DeleteMessage(d.channels[mainChannel], msg.ID, api.AuditLogReason("clearing")); err != nil {
+		if err = d.Session.DeleteMessage(d.channels[d.mainCh], msg.ID, api.AuditLogReason("clearing")); err != nil {
 			return false, fmt.Errorf("unable to delete message: %w", err)
 		}
 	}
 
-	msgs, err = d.Session.Messages(d.channels[mainChannel], 1)
+	msgs, err = d.Session.Messages(d.channels[d.mainCh], 1)
 	if err != nil {
 		return false, fmt.Errorf("unable to get messages: %w", err)
 	}
@@ -176,16 +177,16 @@ func (d *Discord) NewMainMessage(msgData api.SendMessageData) error {
 	var err error
 
 	for !clearedAll {
-		if clearedAll, err = d.deleteOldMessages(d.channels[mainChannel], 100); err != nil {
+		if clearedAll, err = d.deleteOldMessages(d.channels[d.mainCh], 100); err != nil {
 			return err
 		}
 	}
 
-	return d.SendMessage(msgData, mainChannel)
+	return d.SendMessage(msgData, d.mainCh)
 }
 
 func (d *Discord) UpdateMainMessage(data api.EditMessageData) error {
-	msgs, err := d.Session.Messages(d.channels[mainChannel], 1)
+	msgs, err := d.Session.Messages(d.channels[d.mainCh], 1)
 	if err != nil {
 		return fmt.Errorf("unable to get messages: %w", err)
 	}
@@ -198,7 +199,7 @@ func (d *Discord) UpdateMainMessage(data api.EditMessageData) error {
 		return d.NewMainMessage(msgData)
 	}
 
-	msg, err := d.Session.EditMessageComplex(d.channels[mainChannel], msgs[0].ID, data)
+	msg, err := d.Session.EditMessageComplex(d.channels[d.mainCh], msgs[0].ID, data)
 	if err != nil {
 		return fmt.Errorf("unable to edit main message: %w", err)
 	}

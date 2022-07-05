@@ -46,23 +46,14 @@ func Run(cfg defs.Config) {
 
 	dexcom := dexcom.New(cfg.Dexcom.Account, cfg.Dexcom.Password, cfg.Logger)
 
-	dg, err := discgo.New(
-		cfg.Discord.Token,
-		cfg.Logger,
-		loc,
-	)
+	dg, err := discgo.New(cfg.Discord.Token, strconv.Itoa(cfg.Discord.Guild), cfg.Logger, loc)
 	if err != nil {
 		panic(err)
 	}
 
 	ch := CommandHandler{Display: dg, Store: ms, Logger: cfg.Logger, Location: loc}
 
-	err = dg.Setup(
-		strconv.Itoa(cfg.Discord.Guild),
-		discgo.Commands,
-		[]string{alertsChannel},
-		ch.InteractionCreateHandler(),
-	)
+	err = dg.Setup(discgo.Commands, []string{alertsChannel}, ch.InteractionCreateHandler())
 	if err != nil {
 		panic(err)
 	}
