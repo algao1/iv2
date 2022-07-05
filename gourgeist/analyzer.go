@@ -95,7 +95,7 @@ func (an *Analyzer) genAndSendAlert(label, reason string) error {
 		},
 	}
 
-	err = an.Messager.SendMessage(api.SendMessageData{
+	_, err = an.Messager.SendMessage(api.SendMessageData{
 		Content: "@everyone",
 		Embeds:  []discord.Embed{embed},
 		AllowedMentions: &api.AllowedMentions{

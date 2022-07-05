@@ -87,26 +87,6 @@ func (suite *DiscordTestSuite) TestSetupIntegration() {
 	assert.True(suite.T(), chFound, "broadcast channel not found")
 }
 
-func getSimpleMessageData() api.SendMessageData {
-	tr := defs.TransformedReading{
-		Time:  time.Date(2022, time.May, 15, 1, 30, 0, 0, time.UTC),
-		Mmol:  6.5,
-		Trend: "Flat",
-	}
-
-	embed := discord.Embed{
-		Title: tr.Time.In(time.UTC).Format(TimeFormat),
-		Fields: []discord.EmbedField{
-			{Name: "Current", Value: strconv.FormatFloat(tr.Mmol, 'f', 2, 64)},
-		},
-	}
-
-	return api.SendMessageData{
-		Embeds: []discord.Embed{embed},
-		Files:  []sendpart.File{},
-	}
-}
-
 func (suite *DiscordTestSuite) TestNewMainIntegration() {
 	msgData := getSimpleMessageData()
 	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
@@ -142,4 +122,41 @@ func (suite *DiscordTestSuite) TestUpdateMainIntegration() {
 	assert.Len(suite.T(), msg.Embeds, 1, "did not find exactly one embed")
 	assert.EqualValues(suite.T(), msgData.Embeds[0], msg.Embeds[0], "got different embeds")
 	assert.EqualValues(suite.T(), editData.Content.Val, msg.Content)
+}
+
+func (suite *DiscordTestSuite) TestAutoDeleteMessages() {
+	msgData := getSimpleMessageData()
+	for i := 0; i < 5; i++ {
+		_, err := suite.discgo.SendMessage(msgData, testChannel)
+		assert.NoError(suite.T(), err)
+	}
+
+	msgs, err := suite.discgo.Session.Messages(suite.discgo.channels[testChannel], 100)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), msgs, 5)
+
+	assert.NoError(suite.T(), suite.discgo.NewMainMessage(msgData), "unable to send main")
+	msgs, err = suite.discgo.Session.Messages(suite.discgo.channels[testChannel], 100)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), msgs, 1)
+}
+
+func getSimpleMessageData() api.SendMessageData {
+	tr := defs.TransformedReading{
+		Time:  time.Date(2022, time.May, 15, 1, 30, 0, 0, time.UTC),
+		Mmol:  6.5,
+		Trend: "Flat",
+	}
+
+	embed := discord.Embed{
+		Title: tr.Time.In(time.UTC).Format(TimeFormat),
+		Fields: []discord.EmbedField{
+			{Name: "Current", Value: strconv.FormatFloat(tr.Mmol, 'f', 2, 64)},
+		},
+	}
+
+	return api.SendMessageData{
+		Embeds: []discord.Embed{embed},
+		Files:  []sendpart.File{},
+	}
 }

@@ -15,6 +15,7 @@ import (
 const (
 	TimeFormat  = "2006-01-02 03:04 PM"
 	mainChannel = "iv2"
+	batchLimit  = 100
 )
 
 type Discord struct {
@@ -22,7 +23,9 @@ type Discord struct {
 	Logger   *zap.Logger
 	Location *time.Location
 
+	// A little hackish to store all the data in a temporary cache.
 	gid      discord.GuildID
+	mid      discord.MessageID // Main message ID.
 	mainCh   string
 	channels map[string]discord.ChannelID
 }
@@ -33,7 +36,7 @@ type Display interface {
 }
 
 type Messager interface {
-	SendMessage(msgData api.SendMessageData, chName string) error
+	SendMessage(msgData api.SendMessageData, chName string) (discord.MessageID, error)
 	GetMainMessage() (*discord.Message, error)
 	NewMainMessage(msgData api.SendMessageData) error
 	UpdateMainMessage(data api.EditMessageData) error
@@ -46,7 +49,6 @@ type Interactioner interface {
 
 func New(token, guildID string, logger *zap.Logger, loc *time.Location) (*Discord, error) {
 	ses := session.NewWithIntents("Bot "+token, gateway.IntentGuildMessages)
-
 	ses.AddIntents(gateway.IntentGuilds)
 	ses.AddIntents(gateway.IntentGuildMessages)
 
@@ -114,7 +116,6 @@ func (d *Discord) Setup(cmds []api.CreateCommandData, channels []string, handler
 
 	// Ensure main channel is created.
 	channels = append(channels, d.mainCh)
-
 	for _, chName := range channels {
 		if _, ok := d.channels[chName]; !ok {
 			d.Logger.Debug("creating channel", zap.String("channel name", chName))
@@ -133,77 +134,81 @@ func (d *Discord) Setup(cmds []api.CreateCommandData, channels []string, handler
 	return nil
 }
 
-func (d *Discord) GetMainMessage() (*discord.Message, error) {
-	msgs, err := d.Session.Messages(d.channels[d.mainCh], 10)
+func (d *Discord) SendMessage(msgData api.SendMessageData, chName string) (discord.MessageID, error) {
+	msg, err := d.Session.SendMessageComplex(d.channels[chName], msgData)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get messages: %w", err)
-	}
-	if len(msgs) == 0 {
-		return nil, fmt.Errorf("no main message found")
-	}
-	return &msgs[0], nil
-}
-
-func (d *Discord) deleteOldMessages(chid discord.ChannelID, limit uint) (bool, error) {
-	msgs, err := d.Session.Messages(d.channels[d.mainCh], limit)
-	if err != nil {
-		return false, fmt.Errorf("unable to get messages: %w", err)
-	}
-
-	for _, msg := range msgs {
-		if err = d.Session.DeleteMessage(d.channels[d.mainCh], msg.ID, api.AuditLogReason("clearing")); err != nil {
-			return false, fmt.Errorf("unable to delete message: %w", err)
-		}
-	}
-
-	msgs, err = d.Session.Messages(d.channels[d.mainCh], 1)
-	if err != nil {
-		return false, fmt.Errorf("unable to get messages: %w", err)
-	}
-	return len(msgs) == 0, nil
-}
-
-func (d *Discord) SendMessage(msgData api.SendMessageData, chName string) error {
-	_, err := d.Session.SendMessageComplex(d.channels[chName], msgData)
-	if err != nil {
-		return err
+		return 0, err
 	}
 	d.Logger.Debug("sent message", zap.String("channel name", chName))
-	return nil
+	return msg.ID, nil
+}
+
+func (d *Discord) GetMainMessage() (*discord.Message, error) {
+	return d.Session.Message(d.channels[d.mainCh], d.mid)
 }
 
 func (d *Discord) NewMainMessage(msgData api.SendMessageData) error {
-	var clearedAll bool
-	var err error
-
-	for !clearedAll {
-		if clearedAll, err = d.deleteOldMessages(d.channels[d.mainCh], 100); err != nil {
-			return err
-		}
+	err := d.deleteMessages(d.channels[d.mainCh], 0)
+	if err != nil {
+		return err
 	}
 
-	return d.SendMessage(msgData, d.mainCh)
+	messageID, err := d.SendMessage(msgData, d.mainCh)
+	if err != nil {
+		return err
+	}
+	d.mid = messageID
+
+	return nil
 }
 
 func (d *Discord) UpdateMainMessage(data api.EditMessageData) error {
-	msgs, err := d.Session.Messages(d.channels[d.mainCh], 1)
+	err := d.deleteMessages(d.channels[d.mainCh], d.mid)
 	if err != nil {
-		return fmt.Errorf("unable to get messages: %w", err)
+		return err
 	}
 
-	if len(msgs) == 0 {
-		msgData := api.SendMessageData{
-			Content: data.Content.Val,
-			Embeds:  *data.Embeds,
+	msg, err := d.GetMainMessage()
+	if err != nil {
+		return err
+	} else if msg == nil {
+		msgData := api.SendMessageData{Content: data.Content.Val}
+		if data.Embeds != nil {
+			msgData.Embeds = *data.Embeds
 		}
 		return d.NewMainMessage(msgData)
 	}
 
-	msg, err := d.Session.EditMessageComplex(d.channels[d.mainCh], msgs[0].ID, data)
+	_, err = d.Session.EditMessageComplex(d.channels[d.mainCh], d.mid, data)
 	if err != nil {
 		return fmt.Errorf("unable to edit main message: %w", err)
 	}
-	d.Logger.Debug("updated main message", zap.Any("msg", *msg))
+	d.Logger.Debug("updated main message")
+
+	return nil
+}
+
+func (d *Discord) deleteMessages(chid discord.ChannelID, exclude discord.MessageID) error {
+	var clearedAll bool
+	for !clearedAll {
+		msgs, err := d.Session.Messages(d.channels[d.mainCh], batchLimit)
+		if err != nil {
+			return fmt.Errorf("unable to get messages: %w", err)
+		}
+
+		for _, msg := range msgs {
+			if msg.ID == exclude {
+				continue
+			}
+			if err = d.Session.DeleteMessage(d.channels[d.mainCh], msg.ID, api.AuditLogReason("clearing")); err != nil {
+				return fmt.Errorf("unable to delete message: %w", err)
+			}
+		}
+
+		if len(msgs) == 0 || len(msgs) == 1 && msgs[0].ID == exclude {
+			break
+		}
+	}
 
 	return nil
 }
