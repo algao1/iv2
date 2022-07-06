@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/discord"
 	"go.uber.org/zap"
 )
 
@@ -114,18 +113,8 @@ func (an *Analyzer) genAndSendAlert(label, reason string) error {
 		return err
 	}
 
-	embed := discord.Embed{
-		Fields: []discord.EmbedField{
-			{
-				Name:  "⚠️ " + label,
-				Value: reason,
-			},
-		},
-	}
-
 	_, err = an.Messager.SendMessage(api.SendMessageData{
-		Content: "@everyone",
-		Embeds:  []discord.Embed{embed},
+		Content: fmt.Sprintln("⚠️ "+label) + fmt.Sprintln(reason) + "@everyone",
 		AllowedMentions: &api.AllowedMentions{
 			Parse: []api.AllowedMentionType{api.AllowEveryoneMention},
 		},

@@ -6,6 +6,7 @@ import (
 	"iv2/gourgeist/defs"
 	"iv2/gourgeist/mg"
 	"iv2/gourgeist/mocks"
+	"strings"
 	"testing"
 	"time"
 
@@ -88,9 +89,7 @@ func (suite *AnalyzerSuite) TestGlucoseAlerts() {
 
 	alert := suite.msger.Channels[alertsChannel][0]
 	label := "⚠️ " + LowGlucoseLabel
-	assert.Equal(suite.T(), len(alert.Embeds), 1)
-	assert.Equal(suite.T(), len(alert.Embeds[0].Fields), 1)
-	assert.Equal(suite.T(), alert.Embeds[0].Fields[0].Name, label)
+	assert.True(suite.T(), strings.Contains(alert.Content, label))
 }
 
 func (suite *AnalyzerSuite) TestHighGlucoseAlert() {
@@ -106,9 +105,7 @@ func (suite *AnalyzerSuite) TestHighGlucoseAlert() {
 
 	alert := suite.msger.Channels[alertsChannel][0]
 	label := "⚠️ " + HighGlucoseLabel
-	assert.Equal(suite.T(), len(alert.Embeds), 1)
-	assert.Equal(suite.T(), len(alert.Embeds[0].Fields), 1)
-	assert.Equal(suite.T(), alert.Embeds[0].Fields[0].Name, label)
+	assert.True(suite.T(), strings.Contains(alert.Content, label))
 }
 
 func (suite *AnalyzerSuite) TestSlowInsulinNoAlert() {
@@ -130,7 +127,5 @@ func (suite *AnalyzerSuite) TestSlowInsulinAlert() {
 
 	alert := suite.msger.Channels[alertsChannel][0]
 	label := "⚠️ " + MissingSlowInsulinLabel
-	assert.Equal(suite.T(), len(alert.Embeds), 1)
-	assert.Equal(suite.T(), len(alert.Embeds[0].Fields), 1)
-	assert.Equal(suite.T(), alert.Embeds[0].Fields[0].Name, label)
+	assert.True(suite.T(), strings.Contains(alert.Content, label))
 }
