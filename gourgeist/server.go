@@ -92,7 +92,7 @@ func Run(cfg defs.Config) {
 
 	go ExecuteTask("glucose-fetcher", DownloaderInterval, func() error { return f.FetchAndLoad() }, cfg.Logger)
 	go ExecuteTask("glucose-plotter", DownloaderInterval, func() error { return pu.Update() }, cfg.Logger)
-	ExecuteTask("glucose-analyzer", DownloaderInterval, func() error { return an.AnalyzeGlucose() }, cfg.Logger)
+	ExecuteTask("analyzer", DownloaderInterval, func() error { return an.Run() }, cfg.Logger)
 }
 
 func ExecuteTask(taskName string, interval time.Duration, task func() error, logger *zap.Logger) {

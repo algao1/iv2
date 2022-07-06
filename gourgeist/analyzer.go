@@ -33,6 +33,19 @@ type Analyzer struct {
 	GlucoseConfig defs.GlucoseConfig
 }
 
+func (an *Analyzer) Run() error {
+	checks := map[string]func() error{
+		"glucose": an.AnalyzeGlucose,
+		"insulin": an.AnalyzeInsulin,
+	}
+	for name, check := range checks {
+		if err := check(); err != nil {
+			an.Logger.Debug("unable to complete check", zap.String("check", name), zap.Error(err))
+		}
+	}
+	return nil
+}
+
 func (an *Analyzer) AnalyzeGlucose() error {
 	ctx := context.Background()
 	now := time.Now()
@@ -46,7 +59,6 @@ func (an *Analyzer) AnalyzeGlucose() error {
 		return nil
 	}
 
-	// TODO: Can probably add a filter to search by label.
 	alertStart := now.Add(-1 * time.Hour)
 	alerts, _ := an.Store.ReadAlerts(ctx, alertStart, now)
 	lowAlert, highAlert := true, true
@@ -86,14 +98,24 @@ func (an *Analyzer) AnalyzeInsulin() error {
 		return err
 	}
 
-	var slowActingAdmin bool
+	missingAlert := true
 	for _, in := range ins {
 		if in.Type == defs.SlowActing.String() {
-			slowActingAdmin = true
+			missingAlert = false
 		}
 	}
 
-	if !slowActingAdmin {
+	// TODO: Should probably clean this up.
+	alertStart := now.Add(-1 * time.Hour)
+	alerts, _ := an.Store.ReadAlerts(ctx, alertStart, now)
+	for _, alert := range alerts {
+		switch alert.Label {
+		case MissingSlowInsulinLabel:
+			missingAlert = false
+		}
+	}
+
+	if missingAlert {
 		return an.genAndSendAlert(
 			MissingSlowInsulinLabel,
 			fmt.Sprintf("last administered: ≥ %d hours ago", 24),
