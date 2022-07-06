@@ -14,12 +14,14 @@ import (
 )
 
 const (
-	HighGlucoseLabel = "High Glucose"
-	LowGlucoseLabel  = "Low Glucose"
+	HighGlucoseLabel        = "High Glucose"
+	LowGlucoseLabel         = "Low Glucose"
+	MissingSlowInsulinLabel = "Missing Slow Acting Insulin"
 )
 
 type AnalyzerStore interface {
 	mg.GlucoseStore
+	mg.InsulinStore
 	mg.AlertStore
 }
 
@@ -41,7 +43,6 @@ func (an *Analyzer) AnalyzeGlucose() error {
 	if err != nil {
 		return err
 	}
-
 	if len(glucose) == 0 {
 		return nil
 	}
@@ -60,7 +61,6 @@ func (an *Analyzer) AnalyzeGlucose() error {
 	}
 
 	recentVal := glucose[len(glucose)-1].Mmol
-
 	if recentVal >= an.GlucoseConfig.High && highAlert {
 		return an.genAndSendAlert(
 			HighGlucoseLabel,
@@ -70,6 +70,34 @@ func (an *Analyzer) AnalyzeGlucose() error {
 		return an.genAndSendAlert(
 			LowGlucoseLabel,
 			fmt.Sprintf("current value: %.2f ≤ %.2f", recentVal, an.GlucoseConfig.Low),
+		)
+	}
+
+	return nil
+}
+
+func (an *Analyzer) AnalyzeInsulin() error {
+	// TODO: Need to make this check configurable.
+	ctx := context.Background()
+	now := time.Now()
+	start := now.Add(-24 * time.Hour)
+
+	ins, err := an.Store.ReadInsulin(ctx, start, now)
+	if err != nil {
+		return err
+	}
+
+	var slowActingAdmin bool
+	for _, in := range ins {
+		if in.Type == defs.SlowActing.String() {
+			slowActingAdmin = true
+		}
+	}
+
+	if !slowActingAdmin {
+		return an.genAndSendAlert(
+			MissingSlowInsulinLabel,
+			fmt.Sprintf("last administered: ≥ %d hours ago", 24),
 		)
 	}
 

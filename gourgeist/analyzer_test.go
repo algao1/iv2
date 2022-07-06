@@ -110,3 +110,27 @@ func (suite *AnalyzerSuite) TestHighGlucoseAlert() {
 	assert.Equal(suite.T(), len(alert.Embeds[0].Fields), 1)
 	assert.Equal(suite.T(), alert.Embeds[0].Fields[0].Name, label)
 }
+
+func (suite *AnalyzerSuite) TestSlowInsulinNoAlert() {
+	ctx := context.Background()
+	_, err := suite.ms.WriteInsulin(ctx, &defs.Insulin{
+		Time:   time.Now().Add(-15 * time.Minute),
+		Type:   defs.SlowActing.String(),
+		Amount: 10,
+	})
+	assert.NoError(suite.T(), err)
+
+	assert.NoError(suite.T(), suite.analyzer.AnalyzeInsulin())
+	assert.Len(suite.T(), suite.msger.Channels[alertsChannel], 0)
+}
+
+func (suite *AnalyzerSuite) TestSlowInsulinAlert() {
+	assert.NoError(suite.T(), suite.analyzer.AnalyzeInsulin())
+	assert.Len(suite.T(), suite.msger.Channels[alertsChannel], 1)
+
+	alert := suite.msger.Channels[alertsChannel][0]
+	label := "⚠️ " + MissingSlowInsulinLabel
+	assert.Equal(suite.T(), len(alert.Embeds), 1)
+	assert.Equal(suite.T(), len(alert.Embeds[0].Fields), 1)
+	assert.Equal(suite.T(), alert.Embeds[0].Fields[0].Name, label)
+}
