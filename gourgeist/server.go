@@ -90,9 +90,21 @@ func Run(cfg defs.Config) {
 		Logger: cfg.Logger,
 	}
 
-	go ExecuteTask("glucose-fetcher", DownloaderInterval, func() error { return f.FetchAndLoad() }, cfg.Logger)
-	go ExecuteTask("glucose-plotter", DownloaderInterval, func() error { return pu.Update() }, cfg.Logger)
-	ExecuteTask("analyzer", DownloaderInterval, func() error { return an.Run() }, cfg.Logger)
+	// TODO: Eventually, separate this out to be triggered by updates
+	// so that they don't run constantly.
+	ExecuteTask("loop", DownloaderInterval, func() error {
+		var err error
+		if err = f.FetchAndLoad(); err != nil {
+			cfg.Logger.Error("fetching error", zap.Error(err))
+		}
+		if err = pu.Update(); err != nil {
+			cfg.Logger.Error("plot update error", zap.Error(err))
+		}
+		if err = an.Run(); err != nil {
+			cfg.Logger.Error("analyzer error", zap.Error(err))
+		}
+		return nil
+	}, cfg.Logger)
 }
 
 func ExecuteTask(taskName string, interval time.Duration, task func() error, logger *zap.Logger) {
