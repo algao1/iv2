@@ -48,19 +48,19 @@ func (an *Analyzer) Run() error {
 
 func (an *Analyzer) AnalyzeGlucose() error {
 	ctx := context.Background()
-	now := time.Now()
-	start := now.Add(lookbackInterval)
+	now, start := time.Now(), time.Now().Add(lookbackInterval)
 
 	glucose, err := an.Store.ReadGlucose(ctx, start, now)
 	if err != nil {
 		return err
-	}
-	if len(glucose) == 0 {
+	} else if len(glucose) == 0 {
 		return nil
 	}
 
+	// If we get an error, assume no previous alerts were sent.
 	alertStart := now.Add(-1 * time.Hour)
 	alerts, _ := an.Store.ReadAlerts(ctx, alertStart, now)
+
 	lowAlert, highAlert := true, true
 	for _, alert := range alerts {
 		switch alert.Label {
@@ -90,8 +90,7 @@ func (an *Analyzer) AnalyzeGlucose() error {
 func (an *Analyzer) AnalyzeInsulin() error {
 	// TODO: Need to make this check configurable.
 	ctx := context.Background()
-	now := time.Now()
-	start := now.Add(-24 * time.Hour)
+	now, start := time.Now(), time.Now().Add(-24*time.Hour)
 
 	ins, err := an.Store.ReadInsulin(ctx, start, now)
 	if err != nil {
@@ -105,7 +104,6 @@ func (an *Analyzer) AnalyzeInsulin() error {
 		}
 	}
 
-	// TODO: Should probably clean this up.
 	alertStart := now.Add(-1 * time.Hour)
 	alerts, _ := an.Store.ReadAlerts(ctx, alertStart, now)
 	for _, alert := range alerts {
