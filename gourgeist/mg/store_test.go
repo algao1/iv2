@@ -49,11 +49,21 @@ func (suite *MongoTestSuite) SetupSuite() {
 		panic(err)
 	}
 	suite.ms = ms
+
+	assert.NoError(
+		suite.T(),
+		suite.ms.Client.Database(testDB).Drop(context.Background()),
+		"unable to drop test db",
+	)
 }
 
 func (suite *MongoTestSuite) AfterTest(_, _ string) {
 	suite.T().Log("teardown test db")
-	assert.NoError(suite.T(), suite.ms.Client.Database(testDB).Drop(context.Background()), "unable to drop test db")
+	assert.NoError(
+		suite.T(),
+		suite.ms.Client.Database(testDB).Drop(context.Background()),
+		"unable to drop test db",
+	)
 }
 
 func (suite *MongoTestSuite) TestDocByIDIntegration() {
