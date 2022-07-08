@@ -82,6 +82,7 @@ func Run(cfg defs.Config) {
 		Logger:        cfg.Logger,
 		Location:      loc,
 		GlucoseConfig: cfg.Glucose,
+		AlarmConfig:   cfg.Alarm,
 	}
 
 	f := Fetcher{

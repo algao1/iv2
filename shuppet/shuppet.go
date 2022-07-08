@@ -21,6 +21,9 @@ func main() {
 	glucoseHigh := flag.Float64("glucose-high", 9, "upper bound for glucose")
 	glucoseTarget := flag.Float64("glucose-target", 6, "target glucose")
 
+	glucoseTimeout := flag.Int("glucose-timeout", 60, "timeout for high/low glucose alerts")
+	noInsulinTimeout := flag.Int("insulin-timeout", 60, "timeout for missing insulin alerts")
+
 	mongoUsername := flag.String("mongo-username", "admin", "mongo username")
 	mongoPassword := flag.String("mongo-password", "password", "mongo password")
 
@@ -44,6 +47,10 @@ func main() {
 			Low:    *glucoseLow,
 			High:   *glucoseHigh,
 			Target: *glucoseTarget,
+		},
+		Alarm: defs.AlarmConfig{
+			GlucoseTimeout:   *glucoseTimeout,
+			NoInsulinTimeout: *noInsulinTimeout,
 		},
 		TrevenantAddr: "trevenant:50051",
 		Timezone:      "America/Toronto",

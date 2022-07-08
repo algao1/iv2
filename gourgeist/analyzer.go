@@ -31,6 +31,7 @@ type Analyzer struct {
 	Logger        *zap.Logger
 	Location      *time.Location
 	GlucoseConfig defs.GlucoseConfig
+	AlarmConfig   defs.AlarmConfig
 }
 
 func (an *Analyzer) Run() error {
@@ -58,7 +59,7 @@ func (an *Analyzer) AnalyzeGlucose() error {
 	}
 
 	// If we get an error, assume no previous alerts were sent.
-	alertStart := now.Add(-1 * time.Hour)
+	alertStart := now.Add(time.Duration(-1 * an.AlarmConfig.GlucoseTimeout * int(time.Minute)))
 	alerts, _ := an.Store.ReadAlerts(ctx, alertStart, now)
 
 	lowAlert, highAlert := true, true
@@ -104,7 +105,7 @@ func (an *Analyzer) AnalyzeInsulin() error {
 		}
 	}
 
-	alertStart := now.Add(-1 * time.Hour)
+	alertStart := now.Add(time.Duration(-1 * an.AlarmConfig.NoInsulinTimeout * int(time.Minute)))
 	alerts, _ := an.Store.ReadAlerts(ctx, alertStart, now)
 	for _, alert := range alerts {
 		switch alert.Label {
