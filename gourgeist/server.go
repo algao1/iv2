@@ -53,7 +53,7 @@ func Run(cfg defs.Config) {
 
 	ch := CommandHandler{Display: dg, Store: ms, Logger: cfg.Logger, Location: loc}
 
-	err = dg.Setup(discgo.Commands, []string{alertsChannel}, ch.InteractionCreateHandler())
+	err = dg.Setup(Commands, []string{alertsChannel}, ch.InteractionCreateHandler())
 	if err != nil {
 		panic(err)
 	}

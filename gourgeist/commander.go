@@ -71,13 +71,13 @@ func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error 
 	ch.Logger.Debug("received command", zap.String("cmd", data.Name))
 
 	switch data.Name {
-	case discgo.AddCarbsCmd:
+	case AddCarbsCmd:
 		return ch.handleCarbs(data)
-	case discgo.EditCarbsCmd:
+	case EditCarbsCmd:
 		return ch.handleEditCarbs(data)
-	case discgo.AddInsulinCmd:
+	case AddInsulinCmd:
 		return ch.handleInsulin(data)
-	case discgo.EditInsulinCmd:
+	case EditInsulinCmd:
 		return ch.handleEditInsulin(data)
 	default:
 		return fmt.Errorf("received unknown command: %s", data.Name)

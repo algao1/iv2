@@ -1,4 +1,4 @@
-package discgo
+package gourgeist
 
 import (
 	"iv2/gourgeist/defs"
