@@ -308,11 +308,16 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 	}
 
 	ra := stats.TimeSpentInRange(glucose, ch.GlucoseConfig.Low, ch.GlucoseConfig.High)
+	ss := stats.GlucoseSummary(glucose)
+
 	_, err = ch.Display.SendMessage(api.SendMessageData{
 		Embeds: []discord.Embed{
 			{
 				Title: fmt.Sprintf("%s to %s", start.Format(MonthDayFormat), end.Format(MonthDayFormat)),
 				Fields: []discord.EmbedField{
+					{Name: "Average", Value: strconv.FormatFloat(ss.Average, 'f', 2, 64), Inline: true},
+					{Name: "Deviation", Value: strconv.FormatFloat(ss.Deviation, 'f', 2, 64), Inline: true},
+					inlineBlankField,
 					{Name: "In Range", Value: strconv.FormatFloat(ra.InRange, 'f', 2, 64), Inline: true},
 					{Name: "Above Range", Value: strconv.FormatFloat(ra.AboveRange, 'f', 2, 64), Inline: true},
 					inlineBlankField,
