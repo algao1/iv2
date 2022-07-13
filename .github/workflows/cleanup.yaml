@@ -1,0 +1,14 @@
+name: Garbage Collect Old Docker Images
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+
+jobs:
+  build:
+    name: Garbage collect old images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute doctl command
+        run: |
+          echo y | doctl registry garbage-collection start
