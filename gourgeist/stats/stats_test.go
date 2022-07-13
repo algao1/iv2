@@ -32,6 +32,16 @@ func (suite *StatsTestSuite) TestTimeSpentInRange() {
 	assert.Equal(suite.T(), 25.0/100, ra.AboveRange, "above range should match")
 }
 
+func (suite *StatsTestSuite) TestSummaryStatistics() {
+	trs := genReadings([]metaReadings{
+		{size: 100, min: 6, max: 6},
+	}...)
+	ss := GlucoseSummary(trs)
+
+	assert.Equal(suite.T(), ss.Average, float64(6), "averages do not equal")
+	assert.Equal(suite.T(), ss.Deviation, float64(0), "deviations do not equal")
+}
+
 type metaReadings struct {
 	size int
 	min  float64

@@ -2,6 +2,8 @@ package stats
 
 import (
 	"iv2/gourgeist/defs"
+
+	"github.com/montanaflynn/stats"
 )
 
 type RangeAnalysis struct {
@@ -32,4 +34,19 @@ func TimeSpentInRange(trs []defs.TransformedReading, lower, upper float64) Range
 		InRange:    in / total,
 		AboveRange: above / total,
 	}
+}
+
+type SummaryStatistics struct {
+	Average   float64
+	Deviation float64
+}
+
+func GlucoseSummary(trs []defs.TransformedReading) SummaryStatistics {
+	trFloats := make([]float64, len(trs))
+	for i, tr := range trs {
+		trFloats[i] = tr.Mmol
+	}
+	avg, _ := stats.Mean(trFloats)
+	dev, _ := stats.StandardDeviation(trFloats)
+	return SummaryStatistics{Average: avg, Deviation: dev}
 }
