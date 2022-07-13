@@ -298,8 +298,8 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 		end = start.AddDate(0, 0, 7)
 	case "m":
 		start = startOfMonth(start)
-		start = start.AddDate(0, -int(offset), 0)
-		end = start.AddDate(0, 1, -1)
+		start = start.AddDate(0, -int(offset), 1)
+		end = start.AddDate(0, 1, 0)
 	}
 
 	glucose, err := ch.Store.ReadGlucose(context.Background(), start, end)
