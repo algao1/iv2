@@ -41,7 +41,11 @@ func (an *Analyzer) Run() error {
 	}
 	for name, check := range checks {
 		if err := check(); err != nil {
-			an.Logger.Debug("unable to complete check", zap.String("check", name), zap.Error(err))
+			an.Logger.Debug(
+				"unable to complete check",
+				zap.String("check", name),
+				zap.Error(err),
+			)
 		}
 	}
 	return nil

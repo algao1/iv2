@@ -33,7 +33,7 @@ type PlotterStore interface {
 }
 
 // TODO: Need to rename, not only updates plots, but is responsible
-// 	for also updating the 'main' display.
+// for also updating the 'main' display.
 type PlotUpdater struct {
 	Messager discgo.Messager
 	Plotter  ghastly.Plotter
@@ -59,9 +59,13 @@ func (pu PlotUpdater) Update() error {
 		pu.Logger.Debug("unable to get main message", zap.Error(err))
 	}
 
+	recentGlucose := pd.Glucose[len(pd.Glucose)-1]
 	if prevMsg != nil && len(prevMsg.Embeds) > 0 &&
-		prevMsg.Embeds[0].Title == pd.Glucose[len(pd.Glucose)-1].GetTime().In(pu.Location).Format(discgo.TimeFormat) {
-		pu.Logger.Debug("skipping display update, up to date", zap.String("date", prevMsg.Embeds[0].Title))
+		prevMsg.Embeds[0].Title == recentGlucose.GetTime().In(pu.Location).Format(discgo.TimeFormat) {
+		pu.Logger.Debug(
+			"skipping display update, up to date",
+			zap.String("date", prevMsg.Embeds[0].Title),
+		)
 		return nil
 	}
 
@@ -81,12 +85,11 @@ func (pu PlotUpdater) Update() error {
 
 	ra := stats.TimeSpentInRange(pd.Glucose, pu.GlucoseConfig.Low, pu.GlucoseConfig.High)
 
-	glucose := pd.Glucose[len(pd.Glucose)-1]
 	embed := discord.Embed{
-		Title: glucose.Time.In(pu.Location).Format(discgo.TimeFormat),
+		Title: recentGlucose.Time.In(pu.Location).Format(discgo.TimeFormat),
 		Fields: []discord.EmbedField{
-			{Name: "Current", Value: strconv.FormatFloat(glucose.Mmol, 'f', 2, 64), Inline: true},
-			{Name: "Trend", Value: glucose.Trend, Inline: true},
+			{Name: "Current", Value: strconv.FormatFloat(recentGlucose.Mmol, 'f', 2, 64), Inline: true},
+			{Name: "Trend", Value: recentGlucose.Trend, Inline: true},
 			inlineBlankField,
 			{Name: "In Range", Value: strconv.FormatFloat(ra.InRange, 'f', 2, 64), Inline: true},
 			{Name: "Above Range", Value: strconv.FormatFloat(ra.AboveRange, 'f', 2, 64), Inline: true},
@@ -133,5 +136,9 @@ func (pu *PlotUpdater) getPlotData() (*ghastly.PlotData, error) {
 		return nil, err
 	}
 
-	return &ghastly.PlotData{Glucose: glucose, Carbs: carbs, Insulin: insulin}, nil
+	return &ghastly.PlotData{
+		Glucose: glucose,
+		Carbs:   carbs,
+		Insulin: insulin,
+	}, nil
 }

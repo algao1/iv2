@@ -75,7 +75,6 @@ func (suite *AnalyzerSuite) AfterTest(_, _ string) {
 	suite.msger.Channels = make(map[string][]discord.Message)
 }
 
-// TODO: Maybe address code duplication here?
 func (suite *AnalyzerSuite) TestGlucoseAlerts() {
 	ctx := context.Background()
 	_, err := suite.ms.WriteGlucose(ctx, &defs.TransformedReading{

@@ -16,6 +16,7 @@ const (
 	GenReportCmd   = "genreport"
 )
 
+// Register commands under here to get deployed.
 var Commands []api.CreateCommandData = []api.CreateCommandData{
 	addCarbsCmdData,
 	editCarbsCmdData,

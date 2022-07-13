@@ -44,9 +44,18 @@ func Run(cfg defs.Config) {
 		panic(err)
 	}
 
-	dexcom := dexcom.New(cfg.Dexcom.Account, cfg.Dexcom.Password, cfg.Logger)
+	dexcom := dexcom.New(
+		cfg.Dexcom.Account,
+		cfg.Dexcom.Password,
+		cfg.Logger,
+	)
 
-	dg, err := discgo.New(cfg.Discord.Token, strconv.Itoa(cfg.Discord.Guild), cfg.Logger, loc)
+	dg, err := discgo.New(
+		cfg.Discord.Token,
+		strconv.Itoa(cfg.Discord.Guild),
+		cfg.Logger,
+		loc,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +68,11 @@ func Run(cfg defs.Config) {
 		GlucoseConfig: cfg.Glucose,
 	}
 
-	err = dg.Setup(Commands, []string{alertsChannel, reportsChannel}, ch.InteractionCreateHandler())
+	err = dg.Setup(
+		Commands,
+		[]string{alertsChannel, reportsChannel},
+		ch.InteractionCreateHandler(),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -120,7 +133,11 @@ func ExecuteTask(taskName string, interval time.Duration, task func() error, log
 	for ; true; <-ticker.C {
 		err := task()
 		if err != nil {
-			logger.Error("error executing task", zap.String("task", taskName), zap.Error(err))
+			logger.Error(
+				"error executing task",
+				zap.String("task", taskName),
+				zap.Error(err),
+			)
 		}
 	}
 }
