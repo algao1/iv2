@@ -6,6 +6,8 @@ import (
 	"iv2/gourgeist/defs"
 	"iv2/gourgeist/discgo"
 	"iv2/gourgeist/mg"
+	"iv2/gourgeist/stats"
+	"strconv"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -17,12 +19,14 @@ import (
 )
 
 const (
-	CmdTimeFormat = "03:04 PM"
-	logLimit      = 7
+	CmdTimeFormat  = "03:04 PM"
+	MonthDayFormat = "01/02"
+	logLimit       = 7
 )
 
 type CommanderStore interface {
 	mg.DocumentStore
+	mg.GlucoseStore
 	mg.InsulinStore
 	mg.CarbStore
 }
@@ -36,8 +40,9 @@ type CommandHandler struct {
 	Display CommanderDisplay
 	Store   CommanderStore
 
-	Logger   *zap.Logger
-	Location *time.Location
+	Logger        *zap.Logger
+	Location      *time.Location
+	GlucoseConfig defs.GlucoseConfig
 }
 
 func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCreateEvent) {
@@ -79,6 +84,8 @@ func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error 
 		return ch.handleInsulin(data)
 	case EditInsulinCmd:
 		return ch.handleEditInsulin(data)
+	case GenReportCmd:
+		return ch.handleGenReport(data)
 	default:
 		return fmt.Errorf("received unknown command: %s", data.Name)
 	}
@@ -275,6 +282,59 @@ func (ch *CommandHandler) updateWithEvent(oldMessage *discord.Message) error {
 		Embeds:      &oldMessage.Embeds,
 		Attachments: &[]discord.Attachment{},
 	})
+}
+
+func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) error {
+	timeframe := data.Options[0].String()
+	offset, _ := data.Options[1].IntValue()
+
+	start := time.Now().In(ch.Location)
+	var end time.Time
+
+	switch timeframe {
+	case "w":
+		start = startOfWeek(start)
+		start = start.AddDate(0, 0, -int(offset)*7)
+		end = start.AddDate(0, 0, 7)
+	case "m":
+		start = startOfMonth(start)
+		start = start.AddDate(0, -int(offset), 0)
+		end = start.AddDate(0, 1, -1)
+	}
+
+	glucose, err := ch.Store.ReadGlucose(context.Background(), start, end)
+	if err != nil {
+		return err
+	}
+
+	ra := stats.TimeSpentInRange(glucose, ch.GlucoseConfig.Low, ch.GlucoseConfig.High)
+	_, err = ch.Display.SendMessage(api.SendMessageData{
+		Embeds: []discord.Embed{
+			{
+				Title: fmt.Sprintf("%s to %s", start.Format(MonthDayFormat), end.Format(MonthDayFormat)),
+				Fields: []discord.EmbedField{
+					{Name: "In Range", Value: strconv.FormatFloat(ra.InRange, 'f', 2, 64), Inline: true},
+					{Name: "Above Range", Value: strconv.FormatFloat(ra.AboveRange, 'f', 2, 64), Inline: true},
+					inlineBlankField,
+				},
+			},
+		},
+	}, reportsChannel)
+
+	return err
+}
+
+func startOfWeek(t time.Time) time.Time {
+	if wd := t.Weekday(); wd == time.Sunday {
+		t = t.AddDate(0, 0, -6)
+	} else {
+		t = t.AddDate(0, 0, -int(wd)+1)
+	}
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+
+func startOfMonth(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), 0, 0, 0, 0, 0, t.Location())
 }
 
 type DescriptionStore interface {

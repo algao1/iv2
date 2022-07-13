@@ -13,6 +13,7 @@ const (
 	EditCarbsCmd   = "editcarbs"
 	AddInsulinCmd  = "insulin"
 	EditInsulinCmd = "editinsulin"
+	GenReportCmd   = "genreport"
 )
 
 var Commands []api.CreateCommandData = []api.CreateCommandData{
@@ -20,6 +21,7 @@ var Commands []api.CreateCommandData = []api.CreateCommandData{
 	editCarbsCmdData,
 	addInsulinCmdData,
 	editInsulinCmdData,
+	generateReportCmdData,
 }
 
 var addCarbsCmdData api.CreateCommandData = api.CreateCommandData{
@@ -116,6 +118,28 @@ var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 			OptionName:  "offset",
 			Description: "Time offset.",
 			Required:    false,
+		},
+	},
+}
+
+var generateReportCmdData api.CreateCommandData = api.CreateCommandData{
+	Name:        GenReportCmd,
+	Description: "Generate report for a given time frame.",
+	Options: discord.CommandOptions{
+		&discord.StringOption{
+			OptionName:  "time",
+			Description: "Timeframe.",
+			Choices: []discord.StringChoice{
+				{Name: "w", Value: "w"},
+				{Name: "m", Value: "m"},
+			},
+			Required: true,
+		},
+		&discord.IntegerOption{
+			OptionName:  "offset",
+			Description: "Timeframe offset.", // E.g. 1w = last week.
+			Min:         option.ZeroInt,
+			Required:    true,
 		},
 	},
 }

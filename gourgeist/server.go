@@ -20,9 +20,9 @@ const (
 	UpdaterInterval    = DownloaderInterval
 	timeoutInterval    = 2 * time.Second
 
-	alertsChannel = "alerts"
-
-	defaultDBName = "ichor"
+	alertsChannel  = "alerts"
+	reportsChannel = "reports"
+	defaultDBName  = "ichor"
 )
 
 func Run(cfg defs.Config) {
@@ -51,9 +51,15 @@ func Run(cfg defs.Config) {
 		panic(err)
 	}
 
-	ch := CommandHandler{Display: dg, Store: ms, Logger: cfg.Logger, Location: loc}
+	ch := CommandHandler{
+		Display:       dg,
+		Store:         ms,
+		Logger:        cfg.Logger,
+		Location:      loc,
+		GlucoseConfig: cfg.Glucose,
+	}
 
-	err = dg.Setup(Commands, []string{alertsChannel}, ch.InteractionCreateHandler())
+	err = dg.Setup(Commands, []string{alertsChannel, reportsChannel}, ch.InteractionCreateHandler())
 	if err != nil {
 		panic(err)
 	}
