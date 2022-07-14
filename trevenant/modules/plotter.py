@@ -28,6 +28,7 @@ class PlotterServicer(ps):
 
         fname = "daily-" + gxs[-1].strftime("%m%d%Y-%H%M%S-%z") + ".png"
         iid = self.store.store_image(self.plot(gxs, gys, cxs, cys, ixs, iys), fname)
+        logger.debug(f"generated {fname}")
         return FileResponse(id=f"{iid}", name=fname)
 
     def processTimePoints(self, tps: list):
