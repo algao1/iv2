@@ -1,4 +1,3 @@
-import gc
 import plotly.graph_objects as go
 
 from datetime import datetime, timedelta
@@ -8,10 +7,6 @@ from loguru import logger
 from pytz import timezone
 
 from modules.store import Store
-
-# TODO:
-# - add unit tests
-# - add type hints
 
 
 class PlotterServicer(ps):
@@ -36,6 +31,7 @@ class PlotterServicer(ps):
         return FileResponse(id=f"{iid}", name=fname)
 
     def processTimePoints(self, tps: list):
+        # Convert protobuf time to datetime, and localize to timezone.
         xs = [
             self.tz.localize(
                 datetime.fromtimestamp(tp.time.seconds + tp.time.nanos / 1e9)
@@ -45,7 +41,6 @@ class PlotterServicer(ps):
         ys = [tp.value for tp in tps]
         return xs, ys
 
-    # TODO: Make this better.
     def interpolateMarker(
         self,
         gxs: list[datetime],
@@ -53,6 +48,7 @@ class PlotterServicer(ps):
         mxs: list[datetime],
         above: bool = True,
     ):
+        # Set the proportional offset from the curve.
         res = []
         offset = (max(gys) - min(gys)) / 10
         if not above:
@@ -70,11 +66,52 @@ class PlotterServicer(ps):
             if i == 0:
                 rel_y = gys[i]
             else:
+                # Set the relative height to be proportional to the relative x.
                 rel_x = (mx - prev_x) / (gxs[i] - prev_x) if i < len(gxs) else 1
                 rel_y = prev_y + rel_x * (gys[i] - prev_y) if i < len(gxs) else gys[-1]
             res.append(rel_y + offset)
 
         return res
+
+    def timeseriesBounds(self, fig, x_ll, x_ul, y_ll, y_ul):
+        fig.update_layout(
+            width=1400,
+            height=700,
+            margin=dict(l=20, r=20, t=20, b=20),
+            shapes=[
+                dict(  # Draw upper rectangle.
+                    type="rect",
+                    xref="x",
+                    yref="y",
+                    x0=x_ll,
+                    y0=self.high,
+                    x1=x_ul,
+                    y1=y_ul,
+                    fillcolor="red",
+                    opacity=0.15,
+                    line_width=0,
+                    layer="below",
+                ),
+                dict(  # Draw lower rectangle.
+                    type="rect",
+                    xref="x",
+                    yref="y",
+                    x0=x_ll,
+                    y0=y_ll,
+                    x1=x_ul,
+                    y1=self.low,
+                    fillcolor="red",
+                    opacity=0.15,
+                    line_width=0,
+                    layer="below",
+                ),
+            ],
+            xaxis=dict(range=[x_ll, x_ul]),
+            yaxis=dict(range=[y_ll, y_ul]),
+        )
+        fig.add_hline(y=self.low, line_dash="dash", line_color="red")
+        fig.add_hline(y=self.high, line_dash="dash", line_color="red")
+        fig.add_hline(y=self.target, line_dash="dash", line_color="green")
 
     def plot(
         self,
@@ -85,9 +122,12 @@ class PlotterServicer(ps):
         ixs: list[datetime],
         iys: list[float],
     ):
-        x_lowerlim = gxs[0] + timedelta(minutes=-10)
-        x_upperlim = gxs[-1] + timedelta(minutes=10)
-        y_upperlim = max(gys) + 1
+        # Define the limits for bounding boxes.
+        x_lowerlim, x_upperlim = (
+            gxs[0] + timedelta(minutes=-10),
+            gxs[-1] + timedelta(minutes=10),
+        )
+        y_lowerlim, y_upperlim = 2, max(gys) + 1
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(name="glucose", x=gxs, y=gys, mode="lines"))
@@ -111,44 +151,6 @@ class PlotterServicer(ps):
                 marker_size=15,
             ),
         )
-
-        fig.update_layout(
-            width=1400,
-            height=700,
-            margin=dict(l=20, r=20, t=20, b=20),
-            shapes=[
-                dict(  # Upper rectangle.
-                    type="rect",
-                    xref="x",
-                    yref="y",
-                    x0=x_lowerlim,
-                    y0=self.high,
-                    x1=x_upperlim,
-                    y1=y_upperlim,
-                    fillcolor="red",
-                    opacity=0.15,
-                    line_width=0,
-                    layer="below",
-                ),
-                dict(  # Lower rectangle.
-                    type="rect",
-                    xref="x",
-                    yref="y",
-                    x0=x_lowerlim,
-                    y0=2,
-                    x1=x_upperlim,
-                    y1=self.low,
-                    fillcolor="red",
-                    opacity=0.15,
-                    line_width=0,
-                    layer="below",
-                ),
-            ],
-            xaxis=dict(range=[x_lowerlim, x_upperlim]),
-            yaxis=dict(range=[2, y_upperlim]),
-        )
-        fig.add_hline(y=self.low, line_dash="dash", line_color="red")
-        fig.add_hline(y=self.high, line_dash="dash", line_color="red")
-        fig.add_hline(y=self.target, line_dash="dash", line_color="green")
+        self.timeseriesBounds(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
 
         return fig.to_image(format="png")
