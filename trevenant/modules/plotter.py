@@ -15,7 +15,7 @@ class PlotterServicer(ps):
         self.low = config["glucose"]["low"]
         self.high = config["glucose"]["high"]
         self.target = config["glucose"]["target"]
-        self.tz = timezone("US/Eastern")
+        self.tz = timezone(config["timezone"])
 
     def PlotDaily(self, request, context):
         logger.debug("got request to generate daily plot")
@@ -34,8 +34,8 @@ class PlotterServicer(ps):
     def processTimePoints(self, tps: list):
         # Convert protobuf time to datetime, and localize to timezone.
         xs = [
-            self.tz.localize(
-                datetime.fromtimestamp(tp.time.seconds + tp.time.nanos / 1e9)
+            datetime.fromtimestamp(tp.time.seconds + tp.time.nanos / 1e9).astimezone(
+                self.tz
             )
             for tp in tps
         ]
