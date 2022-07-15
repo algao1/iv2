@@ -31,11 +31,24 @@ class PlotterServicer(ps):
     def PlotDaily(self, request, context):
         logger.debug("got request to generate daily plot")
 
-        gxs, gys = self.processTimePoints(request.glucose)
-        cxs, _ = self.processTimePoints(request.carbs)
-        cys = self.interpolateMarker(gxs, gys, cxs, False)
-        ixs, _ = self.processTimePoints(request.insulin)
-        iys = self.interpolateMarker(gxs, gys, ixs)
+        start, end = request.start, request.end
+        start = datetime.fromtimestamp(start.seconds + start.nanos / 1e9).astimezone(
+            self.tz
+        )
+        end = datetime.fromtimestamp(end.seconds + end.nanos / 1e9).astimezone(self.tz)
+
+        glucose = self.store.get_glucose(start, end)
+        carbs = self.store.get_carbs(start, end)
+        insulin = self.store.get_insulin(start, end)
+
+        # Process and interpolate points.
+        gxs = self.process_timepoints(glucose)
+        cxs = self.process_timepoints(carbs)
+        ixs = self.process_timepoints(insulin)
+
+        gys = [g["mmol"] for g in glucose]
+        cys = self.interpolate_markers(gxs, gys, cxs, False)
+        iys = self.interpolate_markers(gxs, gys, ixs)
 
         fname = "daily-" + gxs[-1].strftime("%m%d%Y-%H%M%S-%z") + ".png"
         plot = self.plot_daily(gxs, gys, cxs, cys, ixs, iys)
@@ -58,18 +71,81 @@ class PlotterServicer(ps):
         iid = self.store.store_image(plot, fname)
         return FileResponse(id=f"{iid}", name=fname)
 
-    def processTimePoints(self, tps: list):
-        # Convert protobuf time to datetime, and localize to timezone.
-        xs = [
-            datetime.fromtimestamp(tp.time.seconds + tp.time.nanos / 1e9).astimezone(
-                self.tz
-            )
-            for tp in tps
-        ]
-        ys = [tp.value for tp in tps]
-        return xs, ys
+    def plot_daily(
+        self,
+        gxs: list[datetime],
+        gys: list[float],
+        cxs: list[datetime],
+        cys: list[float],
+        ixs: list[datetime],
+        iys: list[float],
+    ):
+        # Define the limits for bounding boxes.
+        x_lowerlim, x_upperlim = (
+            gxs[0] + timedelta(minutes=-10),
+            gxs[-1] + timedelta(minutes=10),
+        )
+        y_lowerlim, y_upperlim = 2, max(gys) + 1
 
-    def interpolateMarker(
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(name="glucose", x=gxs, y=gys, mode="lines"))
+        fig.add_trace(
+            go.Scatter(
+                name="insulin",
+                x=ixs,
+                y=iys,
+                mode="markers",
+                marker_symbol="triangle-down",
+                marker_size=15,
+            ),
+        )
+        fig.add_trace(
+            go.Scatter(
+                name="carbs",
+                x=cxs,
+                y=cys,
+                mode="markers",
+                marker_symbol="triangle-up",
+                marker_size=15,
+            ),
+        )
+
+        self.defaultLayout(fig)
+        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
+
+        return fig.to_image(format="png")
+
+    def plot_weekly(self, glucose):
+        df = pd.DataFrame(glucose)
+        df["time"] = df["time"].dt.tz_localize(pytz.utc)
+        df["time"] = df["time"].dt.tz_convert(pytz.timezone("America/Toronto"))
+
+        x_lowerlim = df["time"].iloc[0]
+        x_lowerlim += timedelta(days=-x_lowerlim.weekday())
+        x_upperlim = x_lowerlim
+        y_lowerlim, y_upperlim = 2, 2
+
+        fig = go.Figure()
+        for i in range(6):
+            day_df = df[df["time"].dt.weekday == i].copy()
+            day_df["time"] = day_df["time"] + pd.Timedelta(days=-i)
+            fig.add_trace(go.Scatter(name=i, x=day_df["time"], y=day_df["mmol"]))
+
+            # Update limits, not very clean.
+            y_upperlim = max(y_upperlim, day_df["mmol"].max())
+            x_lowerlim = min(x_lowerlim, day_df["time"].min())
+            x_upperlim = max(x_upperlim, day_df["time"].max())
+
+        self.defaultLayout(fig)
+        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
+
+        return fig.to_image(format="png")
+
+    def process_timepoints(self, tps: list):
+        # Localize timezone as UTC and convert to local timezone.
+        return [pytz.utc.localize(t["time"]).astimezone(self.tz) for t in tps]
+
+    def interpolate_markers(
         self,
         gxs: list[datetime],
         gys: list[float],
@@ -142,73 +218,3 @@ class PlotterServicer(ps):
         fig.add_hline(y=self.low, line_dash="dash", line_color="red")
         fig.add_hline(y=self.high, line_dash="dash", line_color="red")
         fig.add_hline(y=self.target, line_dash="dash", line_color="green")
-
-    def plot_daily(
-        self,
-        gxs: list[datetime],
-        gys: list[float],
-        cxs: list[datetime],
-        cys: list[float],
-        ixs: list[datetime],
-        iys: list[float],
-    ):
-        # Define the limits for bounding boxes.
-        x_lowerlim, x_upperlim = (
-            gxs[0] + timedelta(minutes=-10),
-            gxs[-1] + timedelta(minutes=10),
-        )
-        y_lowerlim, y_upperlim = 2, max(gys) + 1
-
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(name="glucose", x=gxs, y=gys, mode="lines"))
-        fig.add_trace(
-            go.Scatter(
-                name="insulin",
-                x=ixs,
-                y=iys,
-                mode="markers",
-                marker_symbol="triangle-down",
-                marker_size=15,
-            ),
-        )
-        fig.add_trace(
-            go.Scatter(
-                name="carbs",
-                x=cxs,
-                y=cys,
-                mode="markers",
-                marker_symbol="triangle-up",
-                marker_size=15,
-            ),
-        )
-
-        self.defaultLayout(fig)
-        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
-
-        return fig.to_image(format="png")
-
-    def plot_weekly(self, glucose):
-        df = pd.DataFrame(glucose)
-        df["time"] = df["time"].dt.tz_localize(pytz.utc)
-        df["time"] = df["time"].dt.tz_convert(pytz.timezone("America/Toronto"))
-
-        x_lowerlim = df["time"].iloc[0]
-        x_lowerlim += timedelta(days=-x_lowerlim.weekday())
-        x_upperlim = x_lowerlim
-        y_lowerlim, y_upperlim = 2, 2
-
-        fig = go.Figure()
-        for i in range(6):
-            day_df = df[df["time"].dt.weekday == i].copy()
-            day_df["time"] = day_df["time"] + pd.Timedelta(days=-i)
-            fig.add_trace(go.Scatter(name=i, x=day_df["time"], y=day_df["mmol"]))
-
-            # Update limits, not very clean.
-            y_upperlim = max(y_upperlim, day_df["mmol"].max())
-            x_lowerlim = min(x_lowerlim, day_df["time"].min())
-            x_upperlim = max(x_upperlim, day_df["time"].max())
-
-        self.defaultLayout(fig)
-        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
-
-        return fig.to_image(format="png")

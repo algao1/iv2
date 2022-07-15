@@ -45,12 +45,16 @@ type PlotUpdater struct {
 }
 
 func (pu PlotUpdater) Update() error {
-	pd, err := pu.getPlotData()
+	end := time.Now()
+	start := end.Add(lookbackInterval)
+	ctx := context.Background()
+
+	glucose, err := pu.Store.ReadGlucose(ctx, start, end)
 	if err != nil {
-		return fmt.Errorf("unable to get plot data: %w", err)
+		return err
 	}
 
-	if len(pd.Glucose) == 0 {
+	if len(glucose) == 0 {
 		return fmt.Errorf("no glucose readings found")
 	}
 
@@ -59,7 +63,7 @@ func (pu PlotUpdater) Update() error {
 		pu.Logger.Debug("unable to get main message", zap.Error(err))
 	}
 
-	recentGlucose := pd.Glucose[len(pd.Glucose)-1]
+	recentGlucose := glucose[len(glucose)-1]
 	if prevMsg != nil && len(prevMsg.Embeds) > 0 &&
 		prevMsg.Embeds[0].Title == recentGlucose.GetTime().In(pu.Location).Format(discgo.TimeFormat) {
 		pu.Logger.Debug(
@@ -69,7 +73,7 @@ func (pu PlotUpdater) Update() error {
 		return nil
 	}
 
-	fr, err := pu.Plotter.GenerateDailyPlot(context.Background(), pd)
+	fr, err := pu.Plotter.GenerateDailyPlot(context.Background(), start, end)
 	if err != nil {
 		pu.Logger.Debug("unable to generate daily plot", zap.Error(err))
 	}
@@ -83,7 +87,7 @@ func (pu PlotUpdater) Update() error {
 		pu.Logger.Debug("unable to delete file", zap.Error(err))
 	}
 
-	ra := stats.TimeSpentInRange(pd.Glucose, pu.GlucoseConfig.Low, pu.GlucoseConfig.High)
+	ra := stats.TimeSpentInRange(glucose, pu.GlucoseConfig.Low, pu.GlucoseConfig.High)
 
 	embed := discord.Embed{
 		Title: recentGlucose.Time.In(pu.Location).Format(discgo.TimeFormat),
@@ -114,31 +118,4 @@ func (pu PlotUpdater) Update() error {
 	}
 
 	return pu.Messager.NewMainMessage(msgData)
-}
-
-func (pu *PlotUpdater) getPlotData() (*ghastly.PlotData, error) {
-	end := time.Now()
-	start := end.Add(lookbackInterval)
-	ctx := context.Background()
-
-	glucose, err := pu.Store.ReadGlucose(ctx, start, end)
-	if err != nil {
-		return nil, err
-	}
-
-	carbs, err := pu.Store.ReadCarbs(ctx, start, end)
-	if err != nil {
-		return nil, err
-	}
-
-	insulin, err := pu.Store.ReadInsulin(ctx, start, end)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ghastly.PlotData{
-		Glucose: glucose,
-		Carbs:   carbs,
-		Insulin: insulin,
-	}, nil
 }

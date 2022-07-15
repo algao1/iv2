@@ -5,37 +5,13 @@ import "google/protobuf/timestamp.proto";
 option go_package = "iv2/proto";
 
 service Plotter {
-  // TODO: update PlotDaily to also use TimeRange.
-  rpc PlotDaily(History) returns (FileResponse) {}
+  rpc PlotDaily(TimeRange) returns (FileResponse) {}
   rpc PlotWeekly(TimeRange) returns (FileResponse) {}
 }
 
 message TimeRange {
   google.protobuf.Timestamp start = 1;
   google.protobuf.Timestamp end = 2;
-}
-
-message History {
-  repeated Glucose glucose = 1;
-  repeated Carb carbs = 2;
-  repeated Insulin insulin = 3;
-}
-
-message Glucose {
-  google.protobuf.Timestamp time = 1;
-  double value = 2;
-}
-
-message Carb {
-  google.protobuf.Timestamp time = 1;
-  double value = 2;
-  string type = 3;
-}
-
-message Insulin {
-  google.protobuf.Timestamp time = 1;
-  double value = 2;
-  string type = 3;
 }
 
 message FileResponse {
