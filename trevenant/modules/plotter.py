@@ -129,10 +129,12 @@ class PlotterServicer(ps):
         for i in range(6):
             day_df = df[df["time"].dt.weekday == i].copy()
             day_df["time"] = day_df["time"] + pd.Timedelta(days=-i)
-            fig.add_trace(go.Scatter(name=i, x=day_df["time"], y=day_df["mmol"]))
+            fig.add_trace(
+                go.Scatter(name=WEEKDAYS[i], x=day_df["time"], y=day_df["mmol"])
+            )
 
             # Update limits, not very clean.
-            y_upperlim = max(y_upperlim, day_df["mmol"].max())
+            y_upperlim = max(y_upperlim, day_df["mmol"].max() + 1)
             x_lowerlim = min(x_lowerlim, day_df["time"].min())
             x_upperlim = max(x_upperlim, day_df["time"].max())
 
