@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"iv2/gourgeist/defs"
 	"iv2/gourgeist/ghastly/proto"
+	"time"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -18,6 +19,7 @@ type Client struct {
 
 type Plotter interface {
 	GenerateDailyPlot(context.Context, *PlotData) (*proto.FileResponse, error)
+	GenerateWeeklyPlot(ctx context.Context, start, end time.Time) (*proto.FileResponse, error)
 }
 
 type PlotData struct {
@@ -73,4 +75,11 @@ func (c *Client) GenerateDailyPlot(ctx context.Context, pd *PlotData) (*proto.Fi
 	)
 
 	return fr, nil
+}
+
+func (c *Client) GenerateWeeklyPlot(ctx context.Context, start, end time.Time) (*proto.FileResponse, error) {
+	return c.Plotter.PlotWeekly(ctx, &proto.TimeRange{
+		Start: timestamppb.New(start),
+		End:   timestamppb.New(end),
+	})
 }

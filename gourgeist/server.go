@@ -60,8 +60,18 @@ func Run(cfg defs.Config) {
 		panic(err)
 	}
 
+	conn, err := grpc.Dial(
+		cfg.TrevenantAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		panic(err)
+	}
+	gh := ghastly.New(conn, cfg.Logger)
+
 	ch := CommandHandler{
 		Display:       dg,
+		Plotter:       gh,
 		Store:         ms,
 		Logger:        cfg.Logger,
 		Location:      loc,
@@ -76,15 +86,6 @@ func Run(cfg defs.Config) {
 	if err != nil {
 		panic(err)
 	}
-
-	conn, err := grpc.Dial(
-		cfg.TrevenantAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		panic(err)
-	}
-	gh := ghastly.New(conn, cfg.Logger)
 
 	pu := PlotUpdater{
 		Messager:      dg,

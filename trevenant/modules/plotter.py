@@ -1,12 +1,23 @@
+import pandas as pd
 import plotly.graph_objects as go
+import pytz
 
 from datetime import datetime, timedelta
 from ghastly.proto.ghastly_pb2 import FileResponse
 from ghastly.proto.ghastly_pb2_grpc import PlotterServicer as ps
 from loguru import logger
+from modules.store import Store
 from pytz import timezone
 
-from modules.store import Store
+WEEKDAYS = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+]
 
 
 class PlotterServicer(ps):
@@ -27,8 +38,24 @@ class PlotterServicer(ps):
         iys = self.interpolateMarker(gxs, gys, ixs)
 
         fname = "daily-" + gxs[-1].strftime("%m%d%Y-%H%M%S-%z") + ".png"
-        iid = self.store.store_image(self.plot(gxs, gys, cxs, cys, ixs, iys), fname)
-        logger.debug(f"generated {fname}")
+        plot = self.plot_daily(gxs, gys, cxs, cys, ixs, iys)
+        iid = self.store.store_image(plot, fname)
+        return FileResponse(id=f"{iid}", name=fname)
+
+    def PlotWeekly(self, request, context):
+        logger.debug("got request to generate weekly plot")
+
+        start, end = request.start, request.end
+        start = datetime.fromtimestamp(start.seconds + start.nanos / 1e9).astimezone(
+            self.tz
+        )
+        end = datetime.fromtimestamp(end.seconds + end.nanos / 1e9).astimezone(self.tz)
+
+        glucose = self.store.get_glucose(start, end)
+
+        fname = "weekly-{}.png".format(start.strftime("%m%d"))
+        plot = self.plot_weekly(glucose)
+        iid = self.store.store_image(plot, fname)
         return FileResponse(id=f"{iid}", name=fname)
 
     def processTimePoints(self, tps: list):
@@ -74,11 +101,13 @@ class PlotterServicer(ps):
 
         return res
 
-    def timeseriesBounds(self, fig, x_ll, x_ul, y_ll, y_ul):
+    def defaultLayout(self, fig):
         fig.update_layout(
-            width=1400,
-            height=700,
-            margin=dict(l=20, r=20, t=20, b=20),
+            width=1400, height=700, margin=dict(l=20, r=20, t=20, b=20),
+        )
+
+    def timeseriesLayout(self, fig, x_ll, x_ul, y_ll, y_ul):
+        fig.update_layout(
             shapes=[
                 dict(  # Draw upper rectangle.
                     type="rect",
@@ -114,7 +143,7 @@ class PlotterServicer(ps):
         fig.add_hline(y=self.high, line_dash="dash", line_color="red")
         fig.add_hline(y=self.target, line_dash="dash", line_color="green")
 
-    def plot(
+    def plot_daily(
         self,
         gxs: list[datetime],
         gys: list[float],
@@ -152,6 +181,34 @@ class PlotterServicer(ps):
                 marker_size=15,
             ),
         )
-        self.timeseriesBounds(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
+
+        self.defaultLayout(fig)
+        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
+
+        return fig.to_image(format="png")
+
+    def plot_weekly(self, glucose):
+        df = pd.DataFrame(glucose)
+        df["time"] = df["time"].dt.tz_localize(pytz.utc)
+        df["time"] = df["time"].dt.tz_convert(pytz.timezone("America/Toronto"))
+
+        x_lowerlim = df["time"].iloc[0]
+        x_lowerlim += timedelta(days=-x_lowerlim.weekday())
+        x_upperlim = x_lowerlim
+        y_lowerlim, y_upperlim = 2, 2
+
+        fig = go.Figure()
+        for i in range(6):
+            day_df = df[df["time"].dt.weekday == i].copy()
+            day_df["time"] = day_df["time"] + pd.Timedelta(days=-i)
+            fig.add_trace(go.Scatter(name=i, x=day_df["time"], y=day_df["mmol"]))
+
+            # Update limits, not very clean.
+            y_upperlim = max(y_upperlim, day_df["mmol"].max())
+            x_lowerlim = min(x_lowerlim, day_df["time"].min())
+            x_upperlim = max(x_upperlim, day_df["time"].max())
+
+        self.defaultLayout(fig)
+        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
 
         return fig.to_image(format="png")

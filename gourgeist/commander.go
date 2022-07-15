@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"iv2/gourgeist/defs"
 	"iv2/gourgeist/discgo"
+	"iv2/gourgeist/ghastly"
+	"iv2/gourgeist/ghastly/proto"
 	"iv2/gourgeist/mg"
 	"iv2/gourgeist/stats"
 	"strconv"
@@ -14,6 +16,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
@@ -29,6 +32,7 @@ type CommanderStore interface {
 	mg.GlucoseStore
 	mg.InsulinStore
 	mg.CarbStore
+	mg.FileStore
 }
 
 type CommanderDisplay interface {
@@ -38,6 +42,7 @@ type CommanderDisplay interface {
 
 type CommandHandler struct {
 	Display CommanderDisplay
+	Plotter ghastly.Plotter
 	Store   CommanderStore
 
 	Logger        *zap.Logger
@@ -291,15 +296,32 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 	start := time.Now().In(ch.Location)
 	var end time.Time
 
+	var fr *proto.FileResponse
+	var err error
+
 	switch timeframe {
 	case "w":
 		start = startOfWeek(start)
 		start = start.AddDate(0, 0, -int(offset)*7)
 		end = start.AddDate(0, 0, 7)
+
+		fr, err = ch.Plotter.GenerateWeeklyPlot(context.Background(), start, end)
+		if err != nil {
+			ch.Logger.Debug("unable to generate weekly plot", zap.Error(err))
+		}
 	case "m":
 		start = startOfMonth(start)
 		start = start.AddDate(0, -int(offset), 1)
 		end = start.AddDate(0, 1, 0)
+	}
+
+	fileReader, err := ch.Store.ReadFile(context.Background(), fr.GetId())
+	if err != nil {
+		ch.Logger.Debug("unable to read file", zap.Error(err))
+	}
+
+	if err := ch.Store.DeleteFile(context.Background(), fr.GetId()); err != nil {
+		ch.Logger.Debug("unable to delete file", zap.Error(err))
 	}
 
 	glucose, err := ch.Store.ReadGlucose(context.Background(), start, end)
@@ -310,7 +332,7 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 	ra := stats.TimeSpentInRange(glucose, ch.GlucoseConfig.Low, ch.GlucoseConfig.High)
 	ss := stats.GlucoseSummary(glucose)
 
-	_, err = ch.Display.SendMessage(api.SendMessageData{
+	msgData := api.SendMessageData{
 		Embeds: []discord.Embed{
 			{
 				Title: fmt.Sprintf("%s to %s", start.Format(MonthDayFormat), end.Format(MonthDayFormat)),
@@ -324,7 +346,15 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 				},
 			},
 		},
-	}, reportsChannel)
+	}
+
+	if fileReader != nil {
+		ch.Logger.Debug("adding image to embed", zap.String("name", fr.GetName()))
+		msgData.Embeds[0].Image = &discord.EmbedImage{URL: "attachment://" + fr.GetName()}
+		msgData.Files = append(msgData.Files, sendpart.File{Name: fr.GetName(), Reader: fileReader})
+	}
+
+	_, err = ch.Display.SendMessage(msgData, reportsChannel)
 
 	return err
 }
