@@ -20,9 +20,9 @@ func TimeSpentInRange(trs []defs.TransformedReading, lower, upper float64) Range
 	below, above := 0.0, 0.0
 	for _, tr := range trs {
 		switch {
-		case tr.Mmol <= 4:
+		case tr.Mmol <= lower:
 			below++
-		case tr.Mmol >= 9:
+		case tr.Mmol >= upper:
 			above++
 		}
 	}
