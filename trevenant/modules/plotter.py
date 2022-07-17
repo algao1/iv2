@@ -85,7 +85,7 @@ class PlotterServicer(ps):
             gxs[0] + timedelta(minutes=-10),
             gxs[-1] + timedelta(minutes=10),
         )
-        y_lowerlim, y_upperlim = 2, max(gys) + 1
+        y_lowerlim, y_upperlim = 2, max(gys)
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(name="glucose", x=gxs, y=gys, mode="lines"))
@@ -110,15 +110,15 @@ class PlotterServicer(ps):
             ),
         )
 
-        self.defaultLayout(fig)
-        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
+        self.default_layout(fig)
+        self.timeseries_layout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
 
         return fig.to_image(format="png")
 
     def plot_weekly(self, glucose):
         df = pd.DataFrame(glucose)
-        df["time"] = df["time"].dt.tz_localize(pytz.utc)
-        df["time"] = df["time"].dt.tz_convert(pytz.timezone("America/Toronto"))
+        df["time"] = df["time"].dt.tz_localize(pytz.utc)  # type: ignore
+        df["time"] = df["time"].dt.tz_convert(pytz.timezone("America/Toronto"))  # type: ignore
 
         x_lowerlim = df["time"].iloc[0]
         x_lowerlim += timedelta(days=-x_lowerlim.weekday())
@@ -127,19 +127,19 @@ class PlotterServicer(ps):
 
         fig = go.Figure()
         for i in range(6):
-            day_df = df[df["time"].dt.weekday == i].copy()
+            day_df = df[df["time"].dt.weekday == i].copy()  # type: ignore
             day_df["time"] = day_df["time"] + pd.Timedelta(days=-i)
             fig.add_trace(
                 go.Scatter(name=WEEKDAYS[i], x=day_df["time"], y=day_df["mmol"])
             )
 
             # Update limits, not very clean.
-            y_upperlim = max(y_upperlim, day_df["mmol"].max() + 1)
+            y_upperlim = max(y_upperlim, day_df["mmol"].max())
             x_lowerlim = min(x_lowerlim, day_df["time"].min())
             x_upperlim = max(x_upperlim, day_df["time"].max())
 
-        self.defaultLayout(fig)
-        self.timeseriesLayout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
+        self.default_layout(fig)
+        self.timeseries_layout(fig, x_lowerlim, x_upperlim, y_lowerlim, y_upperlim)
 
         return fig.to_image(format="png")
 
@@ -179,12 +179,12 @@ class PlotterServicer(ps):
 
         return res
 
-    def defaultLayout(self, fig):
+    def default_layout(self, fig):
         fig.update_layout(
             width=1400, height=700, margin=dict(l=20, r=20, t=20, b=20),
         )
 
-    def timeseriesLayout(self, fig, x_ll, x_ul, y_ll, y_ul):
+    def timeseries_layout(self, fig, x_ll, x_ul, y_ll, y_ul):
         fig.update_layout(
             shapes=[
                 dict(  # Draw upper rectangle.
@@ -194,7 +194,7 @@ class PlotterServicer(ps):
                     x0=x_ll,
                     y0=self.high,
                     x1=x_ul,
-                    y1=y_ul,
+                    y1=y_ul + 2,
                     fillcolor="red",
                     opacity=0.15,
                     line_width=0,
@@ -209,6 +209,19 @@ class PlotterServicer(ps):
                     x1=x_ul,
                     y1=self.low,
                     fillcolor="red",
+                    opacity=0.15,
+                    line_width=0,
+                    layer="below",
+                ),
+                dict(  # Draw target region.
+                    type="rect",
+                    xref="x",
+                    yref="y",
+                    x0=x_ll,
+                    y0=self.target - 1,
+                    x1=x_ul,
+                    y1=self.target + 1,
+                    fillcolor="green",
                     opacity=0.15,
                     line_width=0,
                     layer="below",
