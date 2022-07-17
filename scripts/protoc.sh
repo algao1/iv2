@@ -1,9 +1,9 @@
 #!/bin/bash
 
-mkdir -p gourgeist/ghastly/proto
+mkdir -p gourgeist/pkg/ghastly/proto
 
-protoc --go_out=gourgeist/ghastly/proto --go_opt=paths=source_relative \
-  --go-grpc_out=gourgeist/ghastly/proto --go-grpc_opt=paths=source_relative \
+protoc --go_out=gourgeist/pkg/ghastly/proto --go_opt=paths=source_relative \
+  --go-grpc_out=gourgeist/pkg/ghastly/proto --go-grpc_opt=paths=source_relative \
   ghastly.proto
 
 mkdir -p trevenant/ghastly/proto

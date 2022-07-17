@@ -3,8 +3,8 @@ package gourgeist
 import (
 	"context"
 	"fmt"
-	"iv2/gourgeist/dexcom"
-	"iv2/gourgeist/mg"
+	"iv2/gourgeist/pkg/dexcom"
+	"iv2/gourgeist/pkg/mg"
 
 	"go.uber.org/zap"
 )

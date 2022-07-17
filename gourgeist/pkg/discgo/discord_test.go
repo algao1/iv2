@@ -35,7 +35,7 @@ func TestDiscordIntegration(t *testing.T) {
 
 func (suite *DiscordTestSuite) SetupSuite() {
 	// TODO: This is improper testing behaviour, I'll get back to it.
-	file, err := ioutil.ReadFile("../../config.yaml")
+	file, err := ioutil.ReadFile("../../../config.yaml")
 	if err != nil {
 		panic(err)
 	}

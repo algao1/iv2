@@ -2,7 +2,7 @@ package ghastly
 
 import (
 	"context"
-	"iv2/gourgeist/ghastly/proto"
+	"iv2/gourgeist/pkg/ghastly/proto"
 	"time"
 
 	"go.uber.org/zap"

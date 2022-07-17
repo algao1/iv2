@@ -3,10 +3,10 @@ package gourgeist
 import (
 	"context"
 	"iv2/gourgeist/defs"
-	"iv2/gourgeist/dexcom"
-	"iv2/gourgeist/discgo"
-	"iv2/gourgeist/ghastly"
-	"iv2/gourgeist/mg"
+	"iv2/gourgeist/pkg/dexcom"
+	"iv2/gourgeist/pkg/discgo"
+	"iv2/gourgeist/pkg/ghastly"
+	"iv2/gourgeist/pkg/mg"
 	"strconv"
 	"time"
 

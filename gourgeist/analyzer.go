@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/defs"
-	"iv2/gourgeist/discgo"
-	"iv2/gourgeist/mg"
+	"iv2/gourgeist/pkg/discgo"
+	"iv2/gourgeist/pkg/mg"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
