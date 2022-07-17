@@ -14,6 +14,9 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
+      - name: Log in to DO Container Registry
+        run: doctl registry login --expiry-seconds 600
+
       - name: Execute doctl command
         run: |
           echo y | doctl registry garbage-collection start
