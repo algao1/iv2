@@ -27,8 +27,8 @@ const (
 type DocumentStore interface {
 	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
 	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
-	InsertIfNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
-	Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
+	InsertNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
+	Update(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
 }
 
 type GlucoseStore interface {
@@ -38,11 +38,13 @@ type GlucoseStore interface {
 
 type InsulinStore interface {
 	WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
+	UpdateInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
 	ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error)
 }
 
 type CarbStore interface {
 	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
+	UpdateCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
 	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
 }
 
@@ -88,7 +90,7 @@ func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primit
 	return sr.Decode(doc)
 }
 
-func (ms *MongoStore) InsertIfNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) InsertNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
 	ms.Logger.Debug(
 		"inserting document",
 		zap.String("collection", collection),
@@ -110,10 +112,11 @@ func (ms *MongoStore) InsertIfNew(ctx context.Context, collection string, filter
 	return res, err
 }
 
-func (ms *MongoStore) Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) Update(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
 	ms.Logger.Debug(
-		"upeserting document",
+		"updating document",
 		zap.String("collection", collection),
+		zap.Any("filter", filter),
 		zap.Any("document", doc),
 	)
 
@@ -125,13 +128,7 @@ func (ms *MongoStore) Upsert(ctx context.Context, collection string, filter bson
 			options.Update().SetUpsert(true),
 		)
 	if err != nil {
-		ms.Logger.Debug(
-			"unable to upsert document",
-			zap.String("collection", collection),
-			zap.Any("document", doc),
-			zap.Error(err),
-		)
-		return nil, fmt.Errorf("unable to upsert document: %w", err)
+		return nil, fmt.Errorf("unable to update document: %w", err)
 	}
 
 	return res, err
@@ -183,7 +180,7 @@ func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, s
 
 func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
 	filter := bson.M{"time": tr.Time}
-	return ms.InsertIfNew(ctx, GlucoseCollection, filter, tr)
+	return ms.InsertNew(ctx, GlucoseCollection, filter, tr)
 }
 
 func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error) {
@@ -195,13 +192,15 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 }
 
 func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
-	filter := bson.M{}
-	if in.ID != nil {
-		filter["_id"] = in.ID
-	} else {
-		filter["time"] = in.Time
+	filter := bson.M{"time": in.Time}
+	return ms.InsertNew(ctx, InsulinCollection, filter, in)
+}
+
+func (ms *MongoStore) UpdateInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
+	if in.ID == nil {
+		return nil, fmt.Errorf("no id found")
 	}
-	return ms.Upsert(ctx, InsulinCollection, filter, in)
+	return ms.Update(ctx, InsulinCollection, bson.M{"_id": in.ID}, in)
 }
 
 func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error) {
@@ -213,13 +212,15 @@ func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]
 }
 
 func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
-	filter := bson.M{}
-	if c.ID != nil {
-		filter["_id"] = c.ID
-	} else {
-		filter["time"] = c.Time
+	filter := bson.M{"time": c.Time}
+	return ms.Update(ctx, CarbsCollection, filter, c)
+}
+
+func (ms *MongoStore) UpdateCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
+	if c.ID == nil {
+		return nil, fmt.Errorf("no id found")
 	}
-	return ms.Upsert(ctx, CarbsCollection, filter, c)
+	return ms.Update(ctx, CarbsCollection, bson.M{"_id": c.ID}, c)
 }
 
 func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error) {
@@ -231,13 +232,8 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]de
 }
 
 func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
-	filter := bson.M{}
-	if al.ID != nil {
-		filter["_id"] = al.ID
-	} else {
-		filter["time"] = al.Time
-	}
-	return ms.Upsert(ctx, AlertsCollection, filter, al)
+	filter := bson.M{"time": al.Time}
+	return ms.InsertNew(ctx, AlertsCollection, filter, al)
 }
 
 func (ms *MongoStore) ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error) {

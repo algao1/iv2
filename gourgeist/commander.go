@@ -159,7 +159,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 			return fmt.Errorf("unable to set time after current time")
 		}
 
-		_, err = ch.Store.WriteCarbs(context.Background(), &defs.Carb{
+		_, err = ch.Store.UpdateCarbs(context.Background(), &defs.Carb{
 			ID:     &oid,
 			Time:   newTime,
 			Amount: float64(amount),
@@ -251,7 +251,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 			return fmt.Errorf("unable to set time after current time")
 		}
 
-		_, err = ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
+		_, err = ch.Store.UpdateInsulin(context.Background(), &defs.Insulin{
 			ID:     &oid,
 			Time:   newTime,
 			Amount: units,

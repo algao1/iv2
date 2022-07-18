@@ -1,5 +1,6 @@
-# Mounted volume.
+# Mounted volume and backups.
 .data
+dump_*
 
 # Experiments.
 exp

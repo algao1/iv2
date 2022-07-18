@@ -15,10 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	mongoURI = "mongodb://localhost:27017"
-	testDB   = "test"
-)
+const testDB = "test"
 
 type MongoTestSuite struct {
 	suite.Suite
@@ -72,7 +69,7 @@ func (suite *MongoTestSuite) TestDocByIDIntegration() {
 	doc := defs.Insulin{ID: &id}
 
 	var fetchedDoc defs.Insulin
-	_, err := suite.ms.Upsert(ctx, "test", bson.M{}, &doc)
+	_, err := suite.ms.InsertNew(ctx, "test", bson.M{}, &doc)
 	assert.NoError(suite.T(), err)
 	assert.NoError(suite.T(), suite.ms.DocByID(ctx, "test", &id, &fetchedDoc), "unable to fetch document by id")
 	assert.EqualValues(suite.T(), doc, fetchedDoc, "not same document")
@@ -84,7 +81,7 @@ func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
 	doc := defs.Insulin{ID: &id}
 
 	var fetchedDoc defs.Insulin
-	_, err := suite.ms.Upsert(ctx, "test", bson.M{}, &doc)
+	_, err := suite.ms.InsertNew(ctx, "test", bson.M{}, &doc)
 	assert.NoError(suite.T(), err)
 	assert.NoError(suite.T(), suite.ms.DeleteByID(ctx, "test", &id))
 	assert.Error(suite.T(),
@@ -117,7 +114,7 @@ func (suite *MongoTestSuite) TestRWGlucoseIntegration() {
 	for _, tr := range trsInsert {
 		res, err := suite.ms.WriteGlucose(ctx, &tr)
 		assert.NoError(suite.T(), err, "unable to write glucose to test db")
-		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
+		assert.Equal(suite.T(), int64(0), res.MatchedCount, "not unique entry")
 	}
 
 	trs, err := suite.ms.ReadGlucose(ctx, times[2], times[3])
@@ -132,26 +129,21 @@ func (suite *MongoTestSuite) TestRWGlucoseIntegration() {
 
 func (suite *MongoTestSuite) TestIgnoreDupeInsertIntegration() {
 	ctx := context.Background()
-	times := []time.Time{
-		time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
-		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC), // Start.
-		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC), // End.
-	}
 	tr := defs.TransformedReading{
-		Time:  times[0],
+		Time:  time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
 		Mmol:  6.5,
 		Trend: "Flat",
 	}
 
 	res, err := suite.ms.WriteGlucose(ctx, &tr)
 	assert.NoError(suite.T(), err, "unable to write glucose to test db")
-	assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
+	assert.Equal(suite.T(), int64(0), res.MatchedCount, "not unique entry")
 
 	res, err = suite.ms.WriteGlucose(ctx, &tr)
 	assert.NoError(suite.T(), err, "unable to write glucose to test db")
-	assert.True(suite.T(), res.MatchedCount == 1)
-	assert.True(suite.T(), res.UpsertedCount == 0)
-	assert.True(suite.T(), res.ModifiedCount == 0)
+	assert.Equal(suite.T(), int64(1), res.MatchedCount)
+	assert.Equal(suite.T(), int64(0), res.UpsertedCount)
+	assert.Equal(suite.T(), int64(0), res.ModifiedCount)
 }
 
 func (suite *MongoTestSuite) TestRWInsulinIntegration() {
@@ -178,7 +170,7 @@ func (suite *MongoTestSuite) TestRWInsulinIntegration() {
 	for _, in := range insInsert {
 		res, err := suite.ms.WriteInsulin(ctx, &in)
 		assert.NoError(suite.T(), err, "unable to write insulin to test db")
-		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
+		assert.Equal(suite.T(), int64(0), res.MatchedCount, "not unique entry")
 	}
 
 	ins, err := suite.ms.ReadInsulin(ctx, times[2], times[3])
@@ -189,6 +181,31 @@ func (suite *MongoTestSuite) TestRWInsulinIntegration() {
 		assert.EqualValues(suite.T(), insInsert[i].Time, ins[i].Time)
 		assert.EqualValues(suite.T(), insInsert[i].Type, ins[i].Type)
 	}
+}
+
+func (suite *MongoTestSuite) TestUpdateInsulinIntegration() {
+	ctx := context.Background()
+	in := defs.Insulin{
+		Time:   time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
+		Type:   "testType",
+		Amount: 10,
+	}
+
+	res, err := suite.ms.WriteInsulin(ctx, &in)
+	assert.NoError(suite.T(), err, "unable to write insulin to test db")
+	assert.Equal(suite.T(), int64(0), res.MatchedCount, "not unique entry")
+
+	id, ok := res.UpsertedID.(primitive.ObjectID)
+	assert.True(suite.T(), ok)
+
+	in.ID, in.Amount = &id, 42
+	res, err = suite.ms.UpdateInsulin(ctx, &in)
+	assert.NoError(suite.T(), err, "unable to update insulin")
+	assert.Equal(suite.T(), int64(1), res.ModifiedCount)
+
+	var updatedIn defs.Insulin
+	assert.NoError(suite.T(), suite.ms.DocByID(ctx, InsulinCollection, &id, &updatedIn))
+	assert.EqualValues(suite.T(), in, updatedIn)
 }
 
 func (suite *MongoTestSuite) TestRWCarbsIntegration() {
@@ -213,7 +230,7 @@ func (suite *MongoTestSuite) TestRWCarbsIntegration() {
 	for _, carb := range carbsInsert {
 		res, err := suite.ms.WriteCarbs(ctx, &carb)
 		assert.NoError(suite.T(), err, "unable to write carbs to test db")
-		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
+		assert.Equal(suite.T(), int64(0), res.MatchedCount, "not unique entry")
 	}
 
 	carbs, err := suite.ms.ReadCarbs(ctx, times[2], times[3])
@@ -223,6 +240,30 @@ func (suite *MongoTestSuite) TestRWCarbsIntegration() {
 		assert.EqualValues(suite.T(), carbsInsert[i].Amount, carbs[i].Amount)
 		assert.EqualValues(suite.T(), carbsInsert[i].Time, carbs[i].Time)
 	}
+}
+
+func (suite *MongoTestSuite) TestUpdateCarbsIntegration() {
+	ctx := context.Background()
+	carbs := defs.Carb{
+		Time:   time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
+		Amount: 10,
+	}
+
+	res, err := suite.ms.WriteCarbs(ctx, &carbs)
+	assert.NoError(suite.T(), err, "unable to write carbs to test db")
+	assert.Equal(suite.T(), int64(0), res.MatchedCount, "not unique entry")
+
+	id, ok := res.UpsertedID.(primitive.ObjectID)
+	assert.True(suite.T(), ok)
+
+	carbs.ID, carbs.Amount = &id, 42
+	res, err = suite.ms.UpdateCarbs(ctx, &carbs)
+	assert.NoError(suite.T(), err, "unable to update carbs")
+	assert.Equal(suite.T(), int64(1), res.ModifiedCount)
+
+	var updatedCarbs defs.Carb
+	assert.NoError(suite.T(), suite.ms.DocByID(ctx, CarbsCollection, &id, &updatedCarbs))
+	assert.EqualValues(suite.T(), carbs, updatedCarbs)
 }
 
 func (suite *MongoTestSuite) TestRWAlertsIntegration() {
@@ -249,7 +290,7 @@ func (suite *MongoTestSuite) TestRWAlertsIntegration() {
 	for _, alert := range alertsInsert {
 		res, err := suite.ms.WriteAlert(ctx, &alert)
 		assert.NoError(suite.T(), err, "unable to write alerts to test db")
-		assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
+		assert.Equal(suite.T(), int64(0), res.MatchedCount, "not unique entry")
 	}
 
 	alerts, err := suite.ms.ReadAlerts(ctx, times[2], times[3])
