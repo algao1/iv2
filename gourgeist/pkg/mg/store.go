@@ -74,6 +74,7 @@ func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.L
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to mongo: %w", err)
 	}
+
 	return &MongoStore{
 		Client: mongoClient,
 		Logger: logger,
@@ -87,22 +88,26 @@ func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primit
 }
 
 func (ms *MongoStore) Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
-	ms.Logger.Debug("upeserting document",
+	ms.Logger.Debug(
+		"upeserting document",
 		zap.String("collection", collection),
-		zap.Any("document", doc))
+		zap.Any("document", doc),
+	)
 
 	res, err := ms.Client.
 		Database(ms.DBName).
 		Collection(collection).
-		UpdateOne(ctx, filter, bson.M{
-			"$set": doc},
+		UpdateOne(ctx, filter,
+			bson.M{"$set": doc},
 			options.Update().SetUpsert(true),
 		)
 	if err != nil {
-		ms.Logger.Debug("unable to upsert document",
+		ms.Logger.Debug(
+			"unable to upsert document",
 			zap.String("collection", collection),
 			zap.Any("document", doc),
-			zap.Error(err))
+			zap.Error(err),
+		)
 		return nil, fmt.Errorf("unable to upsert document: %w", err)
 	}
 
@@ -110,7 +115,8 @@ func (ms *MongoStore) Upsert(ctx context.Context, collection string, filter bson
 }
 
 func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error {
-	ms.Logger.Debug("deleting document by id",
+	ms.Logger.Debug(
+		"deleting document by id",
 		zap.String("collection", collection),
 		zap.String("id", id.Hex()),
 	)
@@ -119,7 +125,8 @@ func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *pri
 }
 
 func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
-	ms.Logger.Debug("reading events",
+	ms.Logger.Debug(
+		"reading events",
 		zap.String("collection", collection),
 		zap.Time("start", start),
 		zap.Time("end", end),
@@ -138,11 +145,13 @@ func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, s
 			},
 		}, findOptions)
 	if err != nil {
-		ms.Logger.Debug("unable to read events",
+		ms.Logger.Debug(
+			"unable to read events",
 			zap.String("collection", collection),
 			zap.Time("start", start),
 			zap.Time("end", end),
-			zap.Error(err))
+			zap.Error(err),
+		)
 		return fmt.Errorf("unable to read events: %w", err)
 	}
 
