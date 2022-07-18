@@ -27,6 +27,7 @@ const (
 type DocumentStore interface {
 	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
 	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
+	InsertIfNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
 	Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
 }
 
@@ -85,6 +86,28 @@ func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.L
 func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error {
 	sr := ms.Client.Database(ms.DBName).Collection(collection).FindOne(ctx, bson.M{"_id": id})
 	return sr.Decode(doc)
+}
+
+func (ms *MongoStore) InsertIfNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
+	ms.Logger.Debug(
+		"inserting document",
+		zap.String("collection", collection),
+		zap.Any("filter", filter),
+		zap.Any("document", doc),
+	)
+
+	res, err := ms.Client.
+		Database(ms.DBName).
+		Collection(collection).
+		UpdateOne(ctx, filter,
+			bson.M{"$setOnInsert": doc},
+			options.Update().SetUpsert(true),
+		)
+	if err != nil {
+		return nil, fmt.Errorf("unable to insert if new: %w", err)
+	}
+
+	return res, err
 }
 
 func (ms *MongoStore) Upsert(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
@@ -159,13 +182,8 @@ func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, s
 }
 
 func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
-	filter := bson.M{}
-	if tr.ID != nil {
-		filter["_id"] = tr.ID
-	} else {
-		filter["time"] = tr.Time
-	}
-	return ms.Upsert(ctx, GlucoseCollection, filter, tr)
+	filter := bson.M{"time": tr.Time}
+	return ms.InsertIfNew(ctx, GlucoseCollection, filter, tr)
 }
 
 func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error) {

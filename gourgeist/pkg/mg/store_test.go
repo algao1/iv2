@@ -93,8 +93,6 @@ func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
 	)
 }
 
-// TODO: Clean up these unit tests to reduce duplicate code.
-
 func (suite *MongoTestSuite) TestRWGlucoseIntegration() {
 	ctx := context.Background()
 	times := []time.Time{
@@ -130,6 +128,30 @@ func (suite *MongoTestSuite) TestRWGlucoseIntegration() {
 		assert.EqualValues(suite.T(), trsInsert[i].Time, trs[i].Time)
 		assert.EqualValues(suite.T(), trsInsert[i].Trend, trs[i].Trend)
 	}
+}
+
+func (suite *MongoTestSuite) TestIgnoreDupeInsertIntegration() {
+	ctx := context.Background()
+	times := []time.Time{
+		time.Date(2022, time.May, 12, 1, 30, 0, 0, time.UTC),
+		time.Date(2022, time.May, 10, 0, 0, 0, 0, time.UTC), // Start.
+		time.Date(2022, time.May, 20, 0, 0, 0, 0, time.UTC), // End.
+	}
+	tr := defs.TransformedReading{
+		Time:  times[0],
+		Mmol:  6.5,
+		Trend: "Flat",
+	}
+
+	res, err := suite.ms.WriteGlucose(ctx, &tr)
+	assert.NoError(suite.T(), err, "unable to write glucose to test db")
+	assert.True(suite.T(), res.MatchedCount == 0, "not unique entry")
+
+	res, err = suite.ms.WriteGlucose(ctx, &tr)
+	assert.NoError(suite.T(), err, "unable to write glucose to test db")
+	assert.True(suite.T(), res.MatchedCount == 1)
+	assert.True(suite.T(), res.UpsertedCount == 0)
+	assert.True(suite.T(), res.ModifiedCount == 0)
 }
 
 func (suite *MongoTestSuite) TestRWInsulinIntegration() {
