@@ -228,7 +228,7 @@ class PlotterServicer(ps):
                 ),
             ],
             xaxis=dict(range=[x_ll, x_ul]),
-            yaxis=dict(range=[y_ll, y_ul]),
+            yaxis=dict(range=[y_ll, y_ul + 2]),
         )
         fig.add_hline(y=self.low, line_dash="dash", line_color="red")
         fig.add_hline(y=self.high, line_dash="dash", line_color="red")
