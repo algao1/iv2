@@ -10,13 +10,13 @@ from modules.store import Store
 from pytz import timezone
 
 WEEKDAYS = [
-    "Sunday",
     "Monday",
     "Tuesday",
     "Wednesday",
     "Thursday",
     "Friday",
     "Saturday",
+    "Sunday",
 ]
 
 
