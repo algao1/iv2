@@ -6,19 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type TimePoint interface {
-	GetTime() time.Time
-}
-
 type TransformedReading struct {
 	ID    *primitive.ObjectID `bson:"_id,omitempty"`
 	Time  time.Time           `bson:"time"`
 	Mmol  float64             `bson:"mmol"`
 	Trend string              `bson:"trend"`
-}
-
-func (tr *TransformedReading) GetTime() time.Time {
-	return tr.Time
 }
 
 type InsulinType int
@@ -39,18 +31,10 @@ type Insulin struct {
 	Amount float64             `bson:"amount"`
 }
 
-func (in *Insulin) GetTime() time.Time {
-	return in.Time
-}
-
 type Carb struct {
 	ID     *primitive.ObjectID `bson:"_id,omitempty"`
 	Time   time.Time           `bson:"time"`
 	Amount float64             `bson:"amount"`
-}
-
-func (c *Carb) GetTime() time.Time {
-	return c.Time
 }
 
 type Label int
@@ -69,8 +53,4 @@ type Alert struct {
 	Time   time.Time           `bson:"time"`
 	Label  string              `bson:"label"`
 	Reason string              `bson:"reason"`
-}
-
-func (al *Alert) GetTime() time.Time {
-	return al.Time
 }

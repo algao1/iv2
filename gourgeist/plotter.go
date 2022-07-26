@@ -65,7 +65,7 @@ func (pu PlotUpdater) Update() error {
 
 	recentGlucose := glucose[len(glucose)-1]
 	if prevMsg != nil && len(prevMsg.Embeds) > 0 &&
-		prevMsg.Embeds[0].Title == recentGlucose.GetTime().In(pu.Location).Format(discgo.TimeFormat) {
+		prevMsg.Embeds[0].Title == recentGlucose.Time.In(pu.Location).Format(discgo.TimeFormat) {
 		pu.Logger.Debug(
 			"skipping display update, up to date",
 			zap.String("date", prevMsg.Embeds[0].Title),
