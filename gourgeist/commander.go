@@ -310,8 +310,8 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 			ch.Logger.Debug("unable to generate weekly plot", zap.Error(err))
 		}
 	case "m":
-		start = startOfMonth(start)
-		start = start.AddDate(0, -int(offset), 1)
+		start = startOfMonth(start.AddDate(0, -int(offset), 0))
+		start = start.AddDate(0, 0, 1)
 		end = start.AddDate(0, 1, 0)
 	}
 
