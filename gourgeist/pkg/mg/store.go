@@ -24,40 +24,6 @@ const (
 	FilesCollection   = "fs.files"
 )
 
-type DocumentStore interface {
-	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
-	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
-	InsertNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
-	Update(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
-}
-
-type GlucoseStore interface {
-	WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error)
-	ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error)
-}
-
-type InsulinStore interface {
-	WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
-	UpdateInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
-	ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error)
-}
-
-type CarbStore interface {
-	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
-	UpdateCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
-	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
-}
-
-type AlertStore interface {
-	WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error)
-	ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error)
-}
-
-type FileStore interface {
-	ReadFile(ctx context.Context, fid string) (io.Reader, error)
-	DeleteFile(ctx context.Context, fid string) error
-}
-
 type MongoStore struct {
 	Client *mongo.Client
 	Logger *zap.Logger
@@ -83,6 +49,13 @@ func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.L
 		Logger: logger,
 		DBName: dbName,
 	}, nil
+}
+
+type DocumentStore interface {
+	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
+	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
+	InsertNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
+	Update(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
 }
 
 func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error {
@@ -178,6 +151,11 @@ func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, s
 	return cur.All(ctx, slicePtr)
 }
 
+type GlucoseStore interface {
+	WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error)
+	ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error)
+}
+
 func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
 	filter := bson.M{"time": tr.Time}
 	return ms.InsertNew(ctx, GlucoseCollection, filter, tr)
@@ -189,6 +167,12 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 		return nil, fmt.Errorf("unable to read glucose: %w", err)
 	}
 	return trs, nil
+}
+
+type InsulinStore interface {
+	WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
+	UpdateInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
+	ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error)
 }
 
 func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
@@ -211,6 +195,12 @@ func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]
 	return ins, nil
 }
 
+type CarbStore interface {
+	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
+	UpdateCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
+	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
+}
+
 func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
 	filter := bson.M{"time": c.Time}
 	return ms.Update(ctx, CarbsCollection, filter, c)
@@ -231,6 +221,11 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]de
 	return carbs, nil
 }
 
+type AlertStore interface {
+	WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error)
+	ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error)
+}
+
 func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
 	filter := bson.M{"time": al.Time}
 	return ms.InsertNew(ctx, AlertsCollection, filter, al)
@@ -242,6 +237,11 @@ func (ms *MongoStore) ReadAlerts(ctx context.Context, start, end time.Time) ([]d
 		return nil, fmt.Errorf("unable to read alerts: %w", err)
 	}
 	return alerts, nil
+}
+
+type FileStore interface {
+	ReadFile(ctx context.Context, fid string) (io.Reader, error)
+	DeleteFile(ctx context.Context, fid string) error
 }
 
 func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, error) {
