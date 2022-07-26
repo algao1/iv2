@@ -28,7 +28,7 @@ type MongoStore struct {
 	Client *mongo.Client
 	Logger *zap.Logger
 
-	DBName string
+	Database *mongo.Database
 }
 
 func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.Logger) (*MongoStore, error) {
@@ -45,9 +45,9 @@ func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.L
 	}
 
 	return &MongoStore{
-		Client: mongoClient,
-		Logger: logger,
-		DBName: dbName,
+		Client:   mongoClient,
+		Logger:   logger,
+		Database: mongoClient.Database(dbName),
 	}, nil
 }
 
@@ -59,7 +59,7 @@ type DocumentStore interface {
 }
 
 func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error {
-	sr := ms.Client.Database(ms.DBName).Collection(collection).FindOne(ctx, bson.M{"_id": id})
+	sr := ms.Database.Collection(collection).FindOne(ctx, bson.M{"_id": id})
 	return sr.Decode(doc)
 }
 
@@ -71,8 +71,7 @@ func (ms *MongoStore) InsertNew(ctx context.Context, collection string, filter b
 		zap.Any("document", doc),
 	)
 
-	res, err := ms.Client.
-		Database(ms.DBName).
+	res, err := ms.Database.
 		Collection(collection).
 		UpdateOne(ctx, filter,
 			bson.M{"$setOnInsert": doc},
@@ -93,8 +92,7 @@ func (ms *MongoStore) Update(ctx context.Context, collection string, filter bson
 		zap.Any("document", doc),
 	)
 
-	res, err := ms.Client.
-		Database(ms.DBName).
+	res, err := ms.Database.
 		Collection(collection).
 		UpdateOne(ctx, filter,
 			bson.M{"$set": doc},
@@ -113,7 +111,7 @@ func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *pri
 		zap.String("collection", collection),
 		zap.String("id", id.Hex()),
 	)
-	_, err := ms.Client.Database(ms.DBName).Collection(collection).DeleteOne(ctx, bson.M{"_id": id})
+	_, err := ms.Database.Collection(collection).DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
 
@@ -128,8 +126,7 @@ func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, s
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{primitive.E{Key: "time", Value: 1}})
 
-	cur, err := ms.Client.
-		Database(ms.DBName).
+	cur, err := ms.Database.
 		Collection(collection).
 		Find(ctx, bson.M{
 			"time": bson.M{
@@ -245,8 +242,7 @@ type FileStore interface {
 }
 
 func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, error) {
-	db := ms.Client.Database(ms.DBName)
-	bucket, err := gridfs.NewBucket(db)
+	bucket, err := gridfs.NewBucket(ms.Database)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create a GridFS bucket: %w", err)
 	}
@@ -266,8 +262,7 @@ func (ms *MongoStore) ReadFile(ctx context.Context, fid string) (io.Reader, erro
 }
 
 func (ms *MongoStore) DeleteFile(ctx context.Context, fid string) error {
-	db := ms.Client.Database(ms.DBName)
-	bucket, err := gridfs.NewBucket(db)
+	bucket, err := gridfs.NewBucket(ms.Database)
 	if err != nil {
 		return fmt.Errorf("unable to create a GridFS bucket: %w", err)
 	}
