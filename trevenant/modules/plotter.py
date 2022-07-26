@@ -126,7 +126,7 @@ class PlotterServicer(ps):
         y_lowerlim, y_upperlim = 2, 2
 
         fig = go.Figure()
-        for i in range(6):
+        for i in range(7):
             day_df = df[df["time"].dt.weekday == i].copy()  # type: ignore
             day_df["time"] = day_df["time"] + pd.Timedelta(days=-i)
             fig.add_trace(
