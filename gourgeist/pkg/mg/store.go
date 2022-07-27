@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"iv2/gourgeist/defs"
+	"reflect"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -52,24 +53,47 @@ func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.L
 }
 
 type DocumentStore interface {
-	DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error
-	DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error
-	InsertNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
-	Update(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error)
+	DocByID(ctx context.Context, collection, id string, doc interface{}) error
+	DeleteByID(ctx context.Context, collection string, id string) error
+	InsertNew(ctx context.Context, collection string, doc interface{}) (*mongo.UpdateResult, error)
+	Update(ctx context.Context, collection string, id string, doc interface{}) (*mongo.UpdateResult, error)
 }
 
-func (ms *MongoStore) DocByID(ctx context.Context, collection string, id *primitive.ObjectID, doc interface{}) error {
-	sr := ms.Database.Collection(collection).FindOne(ctx, bson.M{"_id": id})
+func (ms *MongoStore) DocByID(ctx context.Context, collection, id string, doc interface{}) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	sr := ms.Database.Collection(collection).FindOne(ctx, bson.M{"_id": oid})
 	return sr.Decode(doc)
 }
 
-func (ms *MongoStore) InsertNew(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = ms.Database.Collection(collection).DeleteOne(ctx, bson.M{"_id": oid})
+	return err
+}
+
+func (ms *MongoStore) InsertNew(ctx context.Context, collection string, doc interface{}) (*mongo.UpdateResult, error) {
 	ms.Logger.Debug(
 		"inserting document",
 		zap.String("collection", collection),
-		zap.Any("filter", filter),
 		zap.Any("document", doc),
 	)
+
+	filter := bson.M{}
+
+	r := reflect.ValueOf(doc)
+	f := reflect.Indirect(r).FieldByName("Time")
+	fieldValue := f.Interface()
+
+	switch v := fieldValue.(type) {
+	case time.Time:
+		filter["time"] = v
+	}
 
 	res, err := ms.Database.
 		Collection(collection).
@@ -84,17 +108,22 @@ func (ms *MongoStore) InsertNew(ctx context.Context, collection string, filter b
 	return res, err
 }
 
-func (ms *MongoStore) Update(ctx context.Context, collection string, filter bson.M, doc interface{}) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) Update(ctx context.Context, collection string, id string, doc interface{}) (*mongo.UpdateResult, error) {
 	ms.Logger.Debug(
 		"updating document",
 		zap.String("collection", collection),
-		zap.Any("filter", filter),
 		zap.Any("document", doc),
 	)
 
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := ms.Database.
 		Collection(collection).
-		UpdateOne(ctx, filter,
+		UpdateOne(ctx,
+			bson.M{"_id": oid},
 			bson.M{"$set": doc},
 			options.Update().SetUpsert(true),
 		)
@@ -103,16 +132,6 @@ func (ms *MongoStore) Update(ctx context.Context, collection string, filter bson
 	}
 
 	return res, err
-}
-
-func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id *primitive.ObjectID) error {
-	ms.Logger.Debug(
-		"deleting document by id",
-		zap.String("collection", collection),
-		zap.String("id", id.Hex()),
-	)
-	_, err := ms.Database.Collection(collection).DeleteOne(ctx, bson.M{"_id": id})
-	return err
 }
 
 func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
@@ -154,8 +173,7 @@ type GlucoseStore interface {
 }
 
 func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
-	filter := bson.M{"time": tr.Time}
-	return ms.InsertNew(ctx, GlucoseCollection, filter, tr)
+	return ms.InsertNew(ctx, GlucoseCollection, tr)
 }
 
 func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error) {
@@ -173,15 +191,11 @@ type InsulinStore interface {
 }
 
 func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
-	filter := bson.M{"time": in.Time}
-	return ms.InsertNew(ctx, InsulinCollection, filter, in)
+	return ms.InsertNew(ctx, InsulinCollection, in)
 }
 
 func (ms *MongoStore) UpdateInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
-	if in.ID == nil {
-		return nil, fmt.Errorf("no id found")
-	}
-	return ms.Update(ctx, InsulinCollection, bson.M{"_id": in.ID}, in)
+	return ms.Update(ctx, InsulinCollection, string(in.ID), in)
 }
 
 func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error) {
@@ -199,15 +213,11 @@ type CarbStore interface {
 }
 
 func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
-	filter := bson.M{"time": c.Time}
-	return ms.Update(ctx, CarbsCollection, filter, c)
+	return ms.InsertNew(ctx, CarbsCollection, c)
 }
 
 func (ms *MongoStore) UpdateCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
-	if c.ID == nil {
-		return nil, fmt.Errorf("no id found")
-	}
-	return ms.Update(ctx, CarbsCollection, bson.M{"_id": c.ID}, c)
+	return ms.Update(ctx, CarbsCollection, string(c.ID), c)
 }
 
 func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error) {
@@ -224,8 +234,7 @@ type AlertStore interface {
 }
 
 func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
-	filter := bson.M{"time": al.Time}
-	return ms.InsertNew(ctx, AlertsCollection, filter, al)
+	return ms.InsertNew(ctx, AlertsCollection, al)
 }
 
 func (ms *MongoStore) ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error) {

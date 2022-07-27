@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -66,26 +65,26 @@ func (suite *MongoTestSuite) AfterTest(_, _ string) {
 func (suite *MongoTestSuite) TestDocByIDIntegration() {
 	ctx := context.Background()
 	id := primitive.NewObjectID()
-	doc := defs.Insulin{ID: &id}
+	doc := defs.Insulin{ID: defs.MyObjectID(id.Hex())}
 
 	var fetchedDoc defs.Insulin
-	_, err := suite.ms.InsertNew(ctx, "test", bson.M{}, &doc)
+	_, err := suite.ms.InsertNew(ctx, "test", &doc)
 	assert.NoError(suite.T(), err)
-	assert.NoError(suite.T(), suite.ms.DocByID(ctx, "test", &id, &fetchedDoc), "unable to fetch document by id")
+	assert.NoError(suite.T(), suite.ms.DocByID(ctx, "test", id.Hex(), &fetchedDoc), "unable to fetch document by id")
 	assert.EqualValues(suite.T(), doc, fetchedDoc, "not same document")
 }
 
 func (suite *MongoTestSuite) TestDeleteByIDIntegration() {
 	ctx := context.Background()
 	id := primitive.NewObjectID()
-	doc := defs.Insulin{ID: &id}
+	doc := defs.Insulin{ID: defs.MyObjectID(id.Hex())}
 
 	var fetchedDoc defs.Insulin
-	_, err := suite.ms.InsertNew(ctx, "test", bson.M{}, &doc)
+	_, err := suite.ms.InsertNew(ctx, "test", &doc)
 	assert.NoError(suite.T(), err)
-	assert.NoError(suite.T(), suite.ms.DeleteByID(ctx, "test", &id))
+	assert.NoError(suite.T(), suite.ms.DeleteByID(ctx, "test", id.Hex()))
 	assert.Error(suite.T(),
-		suite.ms.DocByID(ctx, "test", &id, &fetchedDoc),
+		suite.ms.DocByID(ctx, "test", id.Hex(), &fetchedDoc),
 		"found document by id, delete not successful",
 	)
 }
@@ -121,6 +120,7 @@ func (suite *MongoTestSuite) TestRWGlucoseIntegration() {
 	assert.NoError(suite.T(), err, "unable to read glucose from test db")
 	assert.Len(suite.T(), trs, len(trsInsert), "did not find exactly one entry")
 	for i := range trs {
+		assert.NotEmpty(suite.T(), trs[i].ID)
 		assert.EqualValues(suite.T(), trsInsert[i].Mmol, trs[i].Mmol)
 		assert.EqualValues(suite.T(), trsInsert[i].Time, trs[i].Time)
 		assert.EqualValues(suite.T(), trsInsert[i].Trend, trs[i].Trend)
@@ -198,13 +198,13 @@ func (suite *MongoTestSuite) TestUpdateInsulinIntegration() {
 	id, ok := res.UpsertedID.(primitive.ObjectID)
 	assert.True(suite.T(), ok)
 
-	in.ID, in.Amount = &id, 42
+	in.ID, in.Amount = defs.MyObjectID(id.Hex()), 42
 	res, err = suite.ms.UpdateInsulin(ctx, &in)
 	assert.NoError(suite.T(), err, "unable to update insulin")
 	assert.Equal(suite.T(), int64(1), res.ModifiedCount)
 
 	var updatedIn defs.Insulin
-	assert.NoError(suite.T(), suite.ms.DocByID(ctx, InsulinCollection, &id, &updatedIn))
+	assert.NoError(suite.T(), suite.ms.DocByID(ctx, InsulinCollection, id.Hex(), &updatedIn))
 	assert.EqualValues(suite.T(), in, updatedIn)
 }
 
@@ -256,13 +256,13 @@ func (suite *MongoTestSuite) TestUpdateCarbsIntegration() {
 	id, ok := res.UpsertedID.(primitive.ObjectID)
 	assert.True(suite.T(), ok)
 
-	carbs.ID, carbs.Amount = &id, 42
+	carbs.ID, carbs.Amount = defs.MyObjectID(id.Hex()), 42
 	res, err = suite.ms.UpdateCarbs(ctx, &carbs)
 	assert.NoError(suite.T(), err, "unable to update carbs")
 	assert.Equal(suite.T(), int64(1), res.ModifiedCount)
 
 	var updatedCarbs defs.Carb
-	assert.NoError(suite.T(), suite.ms.DocByID(ctx, CarbsCollection, &id, &updatedCarbs))
+	assert.NoError(suite.T(), suite.ms.DocByID(ctx, CarbsCollection, id.Hex(), &updatedCarbs))
 	assert.EqualValues(suite.T(), carbs, updatedCarbs)
 }
 

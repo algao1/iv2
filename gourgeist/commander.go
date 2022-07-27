@@ -17,7 +17,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
 
@@ -124,13 +123,10 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 
 func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) error {
 	id := data.Options[0].String()
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
 
 	var carbs defs.Carb
-	if err := ch.Store.DocByID(context.Background(), mg.CarbsCollection, &oid, &carbs); err != nil {
+	err := ch.Store.DocByID(context.Background(), mg.CarbsCollection, id, &carbs)
+	if err != nil {
 		return err
 	}
 
@@ -150,7 +146,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 	}
 
 	if amount < 0 {
-		if err := ch.Store.DeleteByID(context.Background(), mg.CarbsCollection, &oid); err != nil {
+		if err := ch.Store.DeleteByID(context.Background(), mg.CarbsCollection, id); err != nil {
 			return err
 		}
 	} else {
@@ -160,7 +156,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 		}
 
 		_, err = ch.Store.UpdateCarbs(context.Background(), &defs.Carb{
-			ID:     &oid,
+			ID:     defs.MyObjectID(id),
 			Time:   newTime,
 			Amount: float64(amount),
 		})
@@ -213,13 +209,10 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 
 func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) error {
 	id := data.Options[0].String()
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
 
 	var ins defs.Insulin
-	if err := ch.Store.DocByID(context.Background(), mg.InsulinCollection, &oid, &ins); err != nil {
+	err := ch.Store.DocByID(context.Background(), mg.InsulinCollection, id, &ins)
+	if err != nil {
 		return err
 	}
 
@@ -242,7 +235,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 	}
 
 	if units < 0 {
-		if err := ch.Store.DeleteByID(context.Background(), mg.InsulinCollection, &oid); err != nil {
+		if err := ch.Store.DeleteByID(context.Background(), mg.InsulinCollection, id); err != nil {
 			return err
 		}
 	} else {
@@ -252,7 +245,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		}
 
 		_, err = ch.Store.UpdateInsulin(context.Background(), &defs.Insulin{
-			ID:     &oid,
+			ID:     defs.MyObjectID(id),
 			Time:   newTime,
 			Amount: units,
 			Type:   insType,
@@ -409,14 +402,14 @@ func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
 		if i >= 0 && (j < 0 || ins[i].Time.After(carbs[j].Time)) {
 			desc += fmt.Sprintf("%s :: %s\n",
 				ins[i].Time.In(loc).Format(CmdTimeFormat),
-				ins[i].ID.Hex(),
+				ins[i].ID,
 			)
 			desc += fmt.Sprintf("insulin %s %.2f\n", ins[i].Type, ins[i].Amount)
 			i--
 		} else {
 			desc += fmt.Sprintf("%s :: %s\n",
 				carbs[j].Time.In(loc).Format(CmdTimeFormat),
-				carbs[j].ID.Hex(),
+				carbs[j].ID,
 			)
 			desc += fmt.Sprintf("carbs %.2f\n", carbs[j].Amount)
 			j--

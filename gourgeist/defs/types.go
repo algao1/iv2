@@ -3,14 +3,26 @@ package defs
 import (
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type MyObjectID string
+
+func (id MyObjectID) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	p, err := primitive.ObjectIDFromHex(string(id))
+	if err != nil {
+		return bsontype.Null, nil, err
+	}
+	return bson.MarshalValue(p)
+}
+
 type TransformedReading struct {
-	ID    *primitive.ObjectID `bson:"_id,omitempty"`
-	Time  time.Time           `bson:"time"`
-	Mmol  float64             `bson:"mmol"`
-	Trend string              `bson:"trend"`
+	ID    MyObjectID `bson:"_id,omitempty"`
+	Time  time.Time  `bson:"time"`
+	Mmol  float64    `bson:"mmol"`
+	Trend string     `bson:"trend"`
 }
 
 type InsulinType int
@@ -25,16 +37,16 @@ func (it InsulinType) String() string {
 }
 
 type Insulin struct {
-	ID     *primitive.ObjectID `bson:"_id,omitempty"`
-	Time   time.Time           `bson:"time"`
-	Type   string              `bson:"type"`
-	Amount float64             `bson:"amount"`
+	ID     MyObjectID `bson:"_id,omitempty"`
+	Time   time.Time  `bson:"time"`
+	Type   string     `bson:"type"`
+	Amount float64    `bson:"amount"`
 }
 
 type Carb struct {
-	ID     *primitive.ObjectID `bson:"_id,omitempty"`
-	Time   time.Time           `bson:"time"`
-	Amount float64             `bson:"amount"`
+	ID     MyObjectID `bson:"_id,omitempty"`
+	Time   time.Time  `bson:"time"`
+	Amount float64    `bson:"amount"`
 }
 
 type Label int
@@ -49,8 +61,8 @@ func (l Label) String() string {
 }
 
 type Alert struct {
-	ID     *primitive.ObjectID `bson:"_id,omitempty"`
-	Time   time.Time           `bson:"time"`
-	Label  string              `bson:"label"`
-	Reason string              `bson:"reason"`
+	ID     MyObjectID `bson:"_id,omitempty"`
+	Time   time.Time  `bson:"time"`
+	Label  string     `bson:"label"`
+	Reason string     `bson:"reason"`
 }
