@@ -66,3 +66,11 @@ type Alert struct {
 	Label  string     `bson:"label"`
 	Reason string     `bson:"reason"`
 }
+
+// Wrapper for mongo.UpdateResult.
+type UpdateResult struct {
+	MatchedCount  int64
+	ModifiedCount int64
+	UpsertedCount int64
+	UpsertedID    MyObjectID
+}

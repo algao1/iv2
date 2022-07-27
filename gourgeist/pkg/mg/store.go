@@ -55,8 +55,8 @@ func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.L
 type DocumentStore interface {
 	DocByID(ctx context.Context, collection, id string, doc interface{}) error
 	DeleteByID(ctx context.Context, collection string, id string) error
-	InsertNew(ctx context.Context, collection string, doc interface{}) (*mongo.UpdateResult, error)
-	Update(ctx context.Context, collection string, id string, doc interface{}) (*mongo.UpdateResult, error)
+	InsertNew(ctx context.Context, collection string, doc interface{}) (*defs.UpdateResult, error)
+	Update(ctx context.Context, collection string, id string, doc interface{}) (*defs.UpdateResult, error)
 }
 
 func (ms *MongoStore) DocByID(ctx context.Context, collection, id string, doc interface{}) error {
@@ -77,7 +77,7 @@ func (ms *MongoStore) DeleteByID(ctx context.Context, collection string, id stri
 	return err
 }
 
-func (ms *MongoStore) InsertNew(ctx context.Context, collection string, doc interface{}) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) InsertNew(ctx context.Context, collection string, doc interface{}) (*defs.UpdateResult, error) {
 	ms.Logger.Debug(
 		"inserting document",
 		zap.String("collection", collection),
@@ -105,10 +105,16 @@ func (ms *MongoStore) InsertNew(ctx context.Context, collection string, doc inte
 		return nil, fmt.Errorf("unable to insert if new: %w", err)
 	}
 
-	return res, err
+	oid, _ := res.UpsertedID.(primitive.ObjectID)
+	return &defs.UpdateResult{
+		MatchedCount:  res.MatchedCount,
+		ModifiedCount: res.ModifiedCount,
+		UpsertedCount: res.UpsertedCount,
+		UpsertedID:    defs.MyObjectID(oid.Hex()),
+	}, nil
 }
 
-func (ms *MongoStore) Update(ctx context.Context, collection string, id string, doc interface{}) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) Update(ctx context.Context, collection string, id string, doc interface{}) (*defs.UpdateResult, error) {
 	ms.Logger.Debug(
 		"updating document",
 		zap.String("collection", collection),
@@ -131,7 +137,12 @@ func (ms *MongoStore) Update(ctx context.Context, collection string, id string, 
 		return nil, fmt.Errorf("unable to update document: %w", err)
 	}
 
-	return res, err
+	return &defs.UpdateResult{
+		MatchedCount:  res.MatchedCount,
+		ModifiedCount: res.ModifiedCount,
+		UpsertedCount: res.UpsertedCount,
+		UpsertedID:    defs.MyObjectID(oid.Hex()),
+	}, nil
 }
 
 func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, start, end time.Time, slicePtr interface{}) error {
@@ -168,11 +179,11 @@ func (ms *MongoStore) getEventsBetween(ctx context.Context, collection string, s
 }
 
 type GlucoseStore interface {
-	WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error)
+	WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*defs.UpdateResult, error)
 	ReadGlucose(ctx context.Context, start, end time.Time) ([]defs.TransformedReading, error)
 }
 
-func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteGlucose(ctx context.Context, tr *defs.TransformedReading) (*defs.UpdateResult, error) {
 	return ms.InsertNew(ctx, GlucoseCollection, tr)
 }
 
@@ -185,16 +196,16 @@ func (ms *MongoStore) ReadGlucose(ctx context.Context, start, end time.Time) ([]
 }
 
 type InsulinStore interface {
-	WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
-	UpdateInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error)
+	WriteInsulin(ctx context.Context, in *defs.Insulin) (*defs.UpdateResult, error)
+	UpdateInsulin(ctx context.Context, in *defs.Insulin) (*defs.UpdateResult, error)
 	ReadInsulin(ctx context.Context, start, end time.Time) ([]defs.Insulin, error)
 }
 
-func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteInsulin(ctx context.Context, in *defs.Insulin) (*defs.UpdateResult, error) {
 	return ms.InsertNew(ctx, InsulinCollection, in)
 }
 
-func (ms *MongoStore) UpdateInsulin(ctx context.Context, in *defs.Insulin) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) UpdateInsulin(ctx context.Context, in *defs.Insulin) (*defs.UpdateResult, error) {
 	return ms.Update(ctx, InsulinCollection, string(in.ID), in)
 }
 
@@ -207,16 +218,16 @@ func (ms *MongoStore) ReadInsulin(ctx context.Context, start, end time.Time) ([]
 }
 
 type CarbStore interface {
-	WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
-	UpdateCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error)
+	WriteCarbs(ctx context.Context, c *defs.Carb) (*defs.UpdateResult, error)
+	UpdateCarbs(ctx context.Context, c *defs.Carb) (*defs.UpdateResult, error)
 	ReadCarbs(ctx context.Context, start, end time.Time) ([]defs.Carb, error)
 }
 
-func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteCarbs(ctx context.Context, c *defs.Carb) (*defs.UpdateResult, error) {
 	return ms.InsertNew(ctx, CarbsCollection, c)
 }
 
-func (ms *MongoStore) UpdateCarbs(ctx context.Context, c *defs.Carb) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) UpdateCarbs(ctx context.Context, c *defs.Carb) (*defs.UpdateResult, error) {
 	return ms.Update(ctx, CarbsCollection, string(c.ID), c)
 }
 
@@ -229,11 +240,11 @@ func (ms *MongoStore) ReadCarbs(ctx context.Context, start, end time.Time) ([]de
 }
 
 type AlertStore interface {
-	WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error)
+	WriteAlert(ctx context.Context, al *defs.Alert) (*defs.UpdateResult, error)
 	ReadAlerts(ctx context.Context, start, end time.Time) ([]defs.Alert, error)
 }
 
-func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*mongo.UpdateResult, error) {
+func (ms *MongoStore) WriteAlert(ctx context.Context, al *defs.Alert) (*defs.UpdateResult, error) {
 	return ms.InsertNew(ctx, AlertsCollection, al)
 }
 
