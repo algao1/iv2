@@ -1,11 +1,20 @@
+<div align="center">
+
 # iv2
 
-A management tool for type 1 diabetes.
-**This project is highly experimental, and should only be used as so.**
+**A personal management tool for type 1 diabetes.**
+
+_This project is highly experimental, and should only be used as so._
+
+<img src='docs/weekly-overlay.png' align='center' width=500>
+
+</div>
+
+---
 
 ## Setup
 
-A configuration file is required, see [here](#Testing) on how to generate them. If docker-compose is available, then we can run:
+To get started, a configuration file is required, see [below](#Testing) on how to generate one.
 
 ```console
 ./scripts/restart.sh
@@ -15,12 +24,21 @@ A configuration file is required, see [here](#Testing) on how to generate them. 
 
 **Note: Currently only supports the Dexcom G6 CGM.**
 
-- Real-time glucose plots with support for customizable thresholds, and insulin, carbs display
-- Customizable hyper/hypo-gylcemia alerts via Discord
+- Real-time glucose plots with customizable thresholds + insulin and carbs intake display
+- Generate weekly and monthly reports on performance metrics such as time spent in range
+- Customizable alerts for hyper/hypo-glycemia via Discord
+
+## What's Next
+
+- Query by short-form id (better support for mobile use)
+- More detailed weekly and monthly reports, compile to PDF for endocrinologists
+- Add documentation on bootstrapping a new iv2 instance from scratch
+- Train new prediction model using LSTM
 
 ## Testing
 
-Includes integration tests that require the use of a running `MongoDB` instance and a Discord bot token. These are used by `shuppet` to generate the necessary configuration files.
+Includes integration tests that require a running `MongoDB` instance and a Discord bot token.
+The following parameters are used by `shuppet` to generate the necessary configuration files.
 
 ```console
 go run shuppet/shuppet.go \
