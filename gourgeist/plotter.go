@@ -105,7 +105,10 @@ func (pu PlotUpdater) Update() error {
 	if fileReader != nil {
 		pu.Logger.Debug("adding image to embed", zap.String("name", fr.GetName()))
 		msgData.Embeds[0].Image = &defs.ImageData{Filename: fr.GetName()}
-		msgData.Files = append(msgData.Files, defs.FileData{Name: fr.GetName(), Reader: fileReader})
+		msgData.Files = append(msgData.Files, defs.FileData{
+			Name:   fr.GetName(),
+			Reader: fileReader},
+		)
 	}
 
 	return pu.Messager.NewMainMessage(msgData)

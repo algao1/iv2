@@ -30,7 +30,5 @@ func main() {
 		panic(err)
 	}
 
-	logger.Debug("loaded config file", zap.Any("config file", config))
-
 	gourgeist.Run(config)
 }

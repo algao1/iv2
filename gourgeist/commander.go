@@ -53,11 +53,9 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 		var err error
 		switch data := e.Data.(type) {
 		case *discord.CommandInteraction:
-			err = ch.handleCommand(data)
-		}
-
-		if err != nil {
-			ch.Logger.Debug("unable to handle command", zap.Error(err))
+			if err = ch.handleCommand(data); err != nil {
+				ch.Logger.Debug("unable to handle command", zap.String("command", data.Name), zap.Error(err))
+			}
 		}
 
 		resp := api.InteractionResponse{
@@ -108,7 +106,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 
 	err = ch.updateWithEvent()
 	if err != nil {
-		return fmt.Errorf("unable to complete carbs command: %w", err)
+		return err
 	}
 
 	return nil
@@ -160,7 +158,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 
 	err = ch.updateWithEvent()
 	if err != nil {
-		return fmt.Errorf("unable to complete editcarbs command: %w", err)
+		return err
 	}
 
 	return nil
@@ -182,7 +180,7 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 
 	err = ch.updateWithEvent()
 	if err != nil {
-		return fmt.Errorf("unable to complete insulin command: %w", err)
+		return err
 	}
 
 	return nil
@@ -238,7 +236,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 
 	err = ch.updateWithEvent()
 	if err != nil {
-		return fmt.Errorf("unable to complete editinsulin command: %w", err)
+		return err
 	}
 
 	return nil
@@ -252,10 +250,8 @@ func (ch *CommandHandler) updateWithEvent() error {
 
 	oldMessage, err := ch.Display.GetMainMessage()
 	if err != nil {
-		return fmt.Errorf("unable to complete editcarbs command: %w", err)
+		return err
 	}
-	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
-
 	oldMessage.Embeds[0].Description = desc
 
 	return ch.Display.UpdateMainMessage(defs.MessageData{
