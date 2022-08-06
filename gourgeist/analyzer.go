@@ -8,7 +8,6 @@ import (
 	"iv2/gourgeist/pkg/mg"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"go.uber.org/zap"
 )
 
@@ -138,11 +137,9 @@ func (an *Analyzer) genAndSendAlert(label, reason string) error {
 		return err
 	}
 
-	_, err = an.Messager.SendMessage(api.SendMessageData{
-		Content: fmt.Sprintln("⚠️ "+label) + fmt.Sprintln(reason) + "@everyone",
-		AllowedMentions: &api.AllowedMentions{
-			Parse: []api.AllowedMentionType{api.AllowEveryoneMention},
-		},
+	_, err = an.Messager.SendMessage(defs.MessageData{
+		Content:         fmt.Sprintln("⚠️ "+label) + fmt.Sprintln(reason) + "@everyone",
+		MentionEveryone: true,
 	}, alertsChannel)
 	if err != nil {
 		return err

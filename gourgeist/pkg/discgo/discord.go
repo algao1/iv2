@@ -3,12 +3,16 @@ package discgo
 import (
 	"context"
 	"fmt"
+	"iv2/gourgeist/defs"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +29,7 @@ type Discord struct {
 
 	// A little hackish to store all the data in a temporary cache.
 	gid      discord.GuildID
-	mid      discord.MessageID // Main message ID.
+	mid      uint64 // Main message ID.
 	mainCh   string
 	channels map[string]discord.ChannelID
 }
@@ -36,10 +40,10 @@ type Display interface {
 }
 
 type Messager interface {
-	SendMessage(msgData api.SendMessageData, chName string) (discord.MessageID, error)
-	GetMainMessage() (*discord.Message, error)
-	NewMainMessage(msgData api.SendMessageData) error
-	UpdateMainMessage(data api.EditMessageData) error
+	SendMessage(data defs.MessageData, chName string) (uint64, error)
+	GetMainMessage() (*defs.MessageData, error)
+	NewMainMessage(data defs.MessageData) error
+	UpdateMainMessage(data defs.MessageData) error
 }
 
 type Interactioner interface {
@@ -134,26 +138,32 @@ func (d *Discord) Setup(cmds []api.CreateCommandData, channels []string, handler
 	return nil
 }
 
-func (d *Discord) SendMessage(msgData api.SendMessageData, chName string) (discord.MessageID, error) {
+func (d *Discord) SendMessage(data defs.MessageData, chName string) (uint64, error) {
+	msgData := d.marshalSendData(data)
 	msg, err := d.Session.SendMessageComplex(d.channels[chName], msgData)
 	if err != nil {
 		return 0, err
 	}
 	d.Logger.Debug("sent message", zap.String("channel name", chName))
-	return msg.ID, nil
+	return uint64(msg.ID), nil
 }
 
-func (d *Discord) GetMainMessage() (*discord.Message, error) {
-	return d.Session.Message(d.channels[d.mainCh], d.mid)
+func (d *Discord) GetMainMessage() (*defs.MessageData, error) {
+	discordMsg, err := d.Session.Message(d.channels[d.mainCh], discord.MessageID(d.mid))
+	if err != nil {
+		return nil, err
+	}
+	md := d.unmarshalSendData(*discordMsg)
+	return &md, nil
 }
 
-func (d *Discord) NewMainMessage(msgData api.SendMessageData) error {
+func (d *Discord) NewMainMessage(data defs.MessageData) error {
 	err := d.deleteMessages(d.channels[d.mainCh], 0)
 	if err != nil {
 		return err
 	}
 
-	messageID, err := d.SendMessage(msgData, d.mainCh)
+	messageID, err := d.SendMessage(data, d.mainCh)
 	if err != nil {
 		return err
 	}
@@ -162,8 +172,8 @@ func (d *Discord) NewMainMessage(msgData api.SendMessageData) error {
 	return nil
 }
 
-func (d *Discord) UpdateMainMessage(data api.EditMessageData) error {
-	err := d.deleteMessages(d.channels[d.mainCh], d.mid)
+func (d *Discord) UpdateMainMessage(data defs.MessageData) error {
+	err := d.deleteMessages(d.channels[d.mainCh], discord.MessageID(d.mid))
 	if err != nil {
 		return err
 	}
@@ -172,20 +182,110 @@ func (d *Discord) UpdateMainMessage(data api.EditMessageData) error {
 	if err != nil {
 		return err
 	} else if msg == nil {
-		msgData := api.SendMessageData{Content: data.Content.Val}
-		if data.Embeds != nil {
-			msgData.Embeds = *data.Embeds
+		return d.NewMainMessage(data)
+	}
+
+	md := d.marshalSendData(data)
+	ed := api.EditMessageData{
+		Content:     option.NewNullableString(md.Content),
+		Embeds:      &md.Embeds,
+		Attachments: &[]discord.Attachment{},
+	}
+
+	_, err = d.Session.EditMessageComplex(d.channels[d.mainCh], discord.MessageID(d.mid), ed)
+	return err
+}
+
+// marshalSendData transforms data of type defs.MessageData to api.SendMessageData
+// which arikawa expects.
+func (d *Discord) marshalSendData(data defs.MessageData) api.SendMessageData {
+	embeds := make([]discord.Embed, 0)
+	for _, embed := range data.Embeds {
+		fields := make([]discord.EmbedField, 0)
+
+		for _, field := range embed.Fields {
+			dField := discord.EmbedField{
+				Name:   field.Name,
+				Value:  field.Value,
+				Inline: field.Inline,
+			}
+			fields = append(fields, dField)
 		}
-		return d.NewMainMessage(msgData)
+
+		dEmbed := discord.Embed{
+			Title:       embed.Title,
+			Description: embed.Description,
+			Fields:      fields,
+		}
+		if embed.Image != nil {
+			URL := embed.Image.Filename
+			if !strings.Contains(embed.Image.Filename, "https://cdn.discordapp.com/attachments") {
+				URL = "attachment://" + URL
+			}
+			dEmbed.Image = &discord.EmbedImage{URL: URL}
+		}
+
+		embeds = append(embeds, dEmbed)
 	}
 
-	_, err = d.Session.EditMessageComplex(d.channels[d.mainCh], d.mid, data)
-	if err != nil {
-		return fmt.Errorf("unable to edit main message: %w", err)
+	files := make([]sendpart.File, 0)
+	for _, file := range data.Files {
+		files = append(files, sendpart.File{
+			Name:   file.Name,
+			Reader: file.Reader,
+		})
 	}
-	d.Logger.Debug("updated main message")
 
-	return nil
+	md := api.SendMessageData{
+		Content: data.Content,
+		Embeds:  embeds,
+		Files:   files,
+	}
+
+	if data.MentionEveryone {
+		md.AllowedMentions = &api.AllowedMentions{
+			Parse: []api.AllowedMentionType{api.AllowEveryoneMention},
+		}
+	}
+
+	return md
+}
+
+// unmarshalSendData transforms data of type discord.Message to defs.MessageData.
+func (d *Discord) unmarshalSendData(data discord.Message) defs.MessageData {
+	embeds := make([]defs.EmbedData, 0)
+	for _, embed := range data.Embeds {
+		fields := make([]defs.EmbedField, 0)
+
+		for _, field := range embed.Fields {
+			dField := defs.EmbedField{
+				Name:   field.Name,
+				Value:  field.Value,
+				Inline: field.Inline,
+			}
+			fields = append(fields, dField)
+		}
+
+		dEmbed := defs.EmbedData{
+			Title:       embed.Title,
+			Description: embed.Description,
+			Fields:      fields,
+		}
+		if embed.Image != nil {
+			dEmbed.Image = &defs.ImageData{
+				Filename: strings.ReplaceAll(embed.Image.URL, "attachment://", ""),
+			}
+		}
+
+		embeds = append(embeds, dEmbed)
+	}
+
+	md := defs.MessageData{
+		Content: data.Content,
+		Embeds:  embeds,
+	}
+
+	return md
 }
 
 func (d *Discord) deleteMessages(chid discord.ChannelID, exclude discord.MessageID) error {

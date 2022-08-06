@@ -16,7 +16,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.uber.org/zap"
 )
 
@@ -71,7 +70,7 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 			return
 		}
 		if err := ch.Display.DeleteInteractionResponse(e.AppID, e.Token); err != nil {
-			ch.Logger.Debug("unable to delete interaction response", zap.Error(err))
+			ch.Logger.Debug("unable to delete interaction response", zap.String("token", e.Token), zap.Error(err))
 		}
 	}
 }
@@ -99,13 +98,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 	amount, _ := data.Options[0].IntValue()
 	ch.Logger.Debug("carbs", zap.Int("amount", int(amount)))
 
-	oldMessage, err := ch.Display.GetMainMessage()
-	if err != nil {
-		return fmt.Errorf("unable to complete carbs command: %w", err)
-	}
-	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
-
-	_, err = ch.Store.WriteCarbs(context.Background(), &defs.Carb{
+	_, err := ch.Store.WriteCarbs(context.Background(), &defs.Carb{
 		Time:   time.Now().In(ch.Location),
 		Amount: float64(amount),
 	})
@@ -113,7 +106,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 		return fmt.Errorf("unable to save carbs: %w", err)
 	}
 
-	err = ch.updateWithEvent(oldMessage)
+	err = ch.updateWithEvent()
 	if err != nil {
 		return fmt.Errorf("unable to complete carbs command: %w", err)
 	}
@@ -165,13 +158,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 		}
 	}
 
-	oldMessage, err := ch.Display.GetMainMessage()
-	if err != nil {
-		return fmt.Errorf("unable to complete editcarbs command: %w", err)
-	}
-	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
-
-	err = ch.updateWithEvent(oldMessage)
+	err = ch.updateWithEvent()
 	if err != nil {
 		return fmt.Errorf("unable to complete editcarbs command: %w", err)
 	}
@@ -184,13 +171,7 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 	units, _ := data.Options[1].FloatValue()
 	ch.Logger.Debug("insulin", zap.Float64("units", units), zap.String("type", insulinType))
 
-	oldMessage, err := ch.Display.GetMainMessage()
-	if err != nil {
-		return fmt.Errorf("unable to complete insulin command: %w", err)
-	}
-	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
-
-	_, err = ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
+	_, err := ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
 		Time:   time.Now().In(ch.Location),
 		Amount: units,
 		Type:   insulinType,
@@ -199,7 +180,7 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 		return fmt.Errorf("unable to save insulin: %w", err)
 	}
 
-	err = ch.updateWithEvent(oldMessage)
+	err = ch.updateWithEvent()
 	if err != nil {
 		return fmt.Errorf("unable to complete insulin command: %w", err)
 	}
@@ -255,13 +236,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		}
 	}
 
-	oldMessage, err := ch.Display.GetMainMessage()
-	if err != nil {
-		return fmt.Errorf("unable to complete editcarbs command: %w", err)
-	}
-	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
-
-	err = ch.updateWithEvent(oldMessage)
+	err = ch.updateWithEvent()
 	if err != nil {
 		return fmt.Errorf("unable to complete editinsulin command: %w", err)
 	}
@@ -269,16 +244,22 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 	return nil
 }
 
-func (ch *CommandHandler) updateWithEvent(oldMessage *discord.Message) error {
+func (ch *CommandHandler) updateWithEvent() error {
 	desc, err := newDescription(ch.Store, ch.Location)
 	if err != nil {
 		ch.Logger.Debug("unable to generate new description", zap.Error(err))
 	}
+
+	oldMessage, err := ch.Display.GetMainMessage()
+	if err != nil {
+		return fmt.Errorf("unable to complete editcarbs command: %w", err)
+	}
+	ch.Logger.Debug("old message", zap.Any("embeds", oldMessage.Embeds))
+
 	oldMessage.Embeds[0].Description = desc
 
-	return ch.Display.UpdateMainMessage(api.EditMessageData{
-		Embeds:      &oldMessage.Embeds,
-		Attachments: &[]discord.Attachment{},
+	return ch.Display.UpdateMainMessage(defs.MessageData{
+		Embeds: oldMessage.Embeds,
 	})
 }
 
@@ -325,17 +306,17 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 	ra := stats.TimeSpentInRange(glucose, ch.GlucoseConfig.Low, ch.GlucoseConfig.High)
 	ss := stats.GlucoseSummary(glucose)
 
-	msgData := api.SendMessageData{
-		Embeds: []discord.Embed{
+	msgData := defs.MessageData{
+		Embeds: []defs.EmbedData{
 			{
 				Title: fmt.Sprintf("%s to %s", start.Format(MonthDayFormat), end.Format(MonthDayFormat)),
-				Fields: []discord.EmbedField{
+				Fields: []defs.EmbedField{
 					{Name: "Average", Value: strconv.FormatFloat(ss.Average, 'f', 2, 64), Inline: true},
 					{Name: "Deviation", Value: strconv.FormatFloat(ss.Deviation, 'f', 2, 64), Inline: true},
-					inlineBlankField,
+					defs.EmptyEmbed(),
 					{Name: "In Range", Value: strconv.FormatFloat(ra.InRange, 'f', 2, 64), Inline: true},
 					{Name: "Above Range", Value: strconv.FormatFloat(ra.AboveRange, 'f', 2, 64), Inline: true},
-					inlineBlankField,
+					defs.EmptyEmbed(),
 				},
 			},
 		},
@@ -343,12 +324,11 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 
 	if fileReader != nil {
 		ch.Logger.Debug("adding image to embed", zap.String("name", fr.GetName()))
-		msgData.Embeds[0].Image = &discord.EmbedImage{URL: "attachment://" + fr.GetName()}
-		msgData.Files = append(msgData.Files, sendpart.File{Name: fr.GetName(), Reader: fileReader})
+		msgData.Embeds[0].Image = &defs.ImageData{Filename: fr.GetName()}
+		msgData.Files = append(msgData.Files, defs.FileData{Name: fr.GetName(), Reader: fileReader})
 	}
 
 	_, err = ch.Display.SendMessage(msgData, reportsChannel)
-
 	return err
 }
 

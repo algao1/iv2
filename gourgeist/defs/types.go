@@ -1,6 +1,7 @@
 package defs
 
 import (
+	"io"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -73,4 +74,44 @@ type UpdateResult struct {
 	ModifiedCount int64
 	UpsertedCount int64
 	UpsertedID    MyObjectID
+}
+
+// Wrapper types for messages, can eventually be generalized for
+// other platforms like Slack.
+
+type MessageData struct {
+	Content         string
+	Embeds          []EmbedData
+	Files           []FileData
+	MentionEveryone bool
+}
+
+type EmbedData struct {
+	Title       string
+	Description string
+	Fields      []EmbedField
+	Image       *ImageData
+}
+
+type EmbedField struct {
+	Name   string
+	Value  string
+	Inline bool
+}
+
+type ImageData struct {
+	Filename string
+}
+
+type FileData struct {
+	Name   string
+	Reader io.Reader
+}
+
+func EmptyEmbed() EmbedField {
+	return EmbedField{
+		Name:   "\u200b",
+		Value:  "\u200b",
+		Inline: true,
+	}
 }

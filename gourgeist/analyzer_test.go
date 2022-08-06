@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -52,7 +51,7 @@ func (suite *AnalyzerSuite) SetupSuite() {
 		panic(err)
 	}
 
-	msger := &mocks.Messager{Channels: make(map[string][]discord.Message)}
+	msger := &mocks.Messager{Channels: make(map[string][]defs.MessageData)}
 	an := Analyzer{
 		Messager:      msger,
 		Store:         ms,
@@ -72,7 +71,7 @@ func (suite *AnalyzerSuite) AfterTest(_, _ string) {
 		suite.ms.Client.Database(testDB).Drop(context.Background()),
 		"unable to drop test db",
 	)
-	suite.msger.Channels = make(map[string][]discord.Message)
+	suite.msger.Channels = make(map[string][]defs.MessageData)
 }
 
 func (suite *AnalyzerSuite) TestGlucoseAlerts() {

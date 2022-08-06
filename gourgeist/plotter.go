@@ -11,19 +11,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.uber.org/zap"
 )
 
 const lookbackInterval = -12 * time.Hour
-
-var inlineBlankField = discord.EmbedField{
-	Name:   "\u200b",
-	Value:  "\u200b",
-	Inline: true,
-}
 
 type PlotterStore interface {
 	mg.GlucoseStore
@@ -89,15 +80,15 @@ func (pu PlotUpdater) Update() error {
 
 	ra := stats.TimeSpentInRange(glucose, pu.GlucoseConfig.Low, pu.GlucoseConfig.High)
 
-	embed := discord.Embed{
+	embed := defs.EmbedData{
 		Title: recentGlucose.Time.In(pu.Location).Format(discgo.TimeFormat),
-		Fields: []discord.EmbedField{
+		Fields: []defs.EmbedField{
 			{Name: "Current", Value: strconv.FormatFloat(recentGlucose.Mmol, 'f', 2, 64), Inline: true},
 			{Name: "Trend", Value: recentGlucose.Trend, Inline: true},
-			inlineBlankField,
+			defs.EmptyEmbed(),
 			{Name: "In Range", Value: strconv.FormatFloat(ra.InRange, 'f', 2, 64), Inline: true},
 			{Name: "Above Range", Value: strconv.FormatFloat(ra.AboveRange, 'f', 2, 64), Inline: true},
-			inlineBlankField,
+			defs.EmptyEmbed(),
 		},
 	}
 
@@ -106,15 +97,15 @@ func (pu PlotUpdater) Update() error {
 		embed.Description = desc
 	}
 
-	msgData := api.SendMessageData{
-		Embeds: []discord.Embed{embed},
-		Files:  []sendpart.File{},
+	msgData := defs.MessageData{
+		Embeds: []defs.EmbedData{embed},
+		Files:  []defs.FileData{},
 	}
 
 	if fileReader != nil {
 		pu.Logger.Debug("adding image to embed", zap.String("name", fr.GetName()))
-		msgData.Embeds[0].Image = &discord.EmbedImage{URL: "attachment://" + fr.GetName()}
-		msgData.Files = append(msgData.Files, sendpart.File{Name: fr.GetName(), Reader: fileReader})
+		msgData.Embeds[0].Image = &defs.ImageData{Filename: fr.GetName()}
+		msgData.Files = append(msgData.Files, defs.FileData{Name: fr.GetName(), Reader: fileReader})
 	}
 
 	return pu.Messager.NewMainMessage(msgData)
