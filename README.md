@@ -22,18 +22,19 @@ To get started, a configuration file is required, see [below](#Testing) on how t
 
 ## Features
 
-**Note: Currently only supports the Dexcom G6 CGM.**
+**Note: iv2 currently only supports the Dexcom G6 CGM.**
 
 - Real-time glucose plots with customizable thresholds + insulin and carbs intake display
-- Generate weekly and monthly reports on performance metrics such as time spent in range
+- Generate weekly and monthly reports on performance metrics such as time spent within range
 - Customizable alerts for hyper/hypo-glycemia via Discord
 
 ## What's Next
 
-- Query by short-form id (better support for mobile use)
-- More detailed weekly and monthly reports, compile to PDF for endocrinologists
-- Add documentation on bootstrapping a new iv2 instance from scratch
+- More detailed weekly and monthly reports, compile to PDF format for endocrinologists
+- Add documentation on how to bootstrap a new iv2 instance from scratch
+- Update tooling on generating prerequisite configurations, libraries, etc.
 - Train new prediction model using LSTM
+- Increase code coverage, add more unit tests
 
 ## Testing
 
