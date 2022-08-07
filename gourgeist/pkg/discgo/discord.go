@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/defs"
-	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -12,7 +11,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.uber.org/zap"
 )
 
@@ -139,7 +137,7 @@ func (d *Discord) Setup(cmds []api.CreateCommandData, channels []string, handler
 }
 
 func (d *Discord) SendMessage(data defs.MessageData, chName string) (uint64, error) {
-	msgData := d.marshalSendData(data)
+	msgData := marshalSendData(data)
 	msg, err := d.Session.SendMessageComplex(d.channels[chName], msgData)
 	if err != nil {
 		return 0, err
@@ -153,7 +151,7 @@ func (d *Discord) GetMainMessage() (*defs.MessageData, error) {
 	if err != nil {
 		return nil, err
 	}
-	md := d.unmarshalSendData(*discordMsg)
+	md := unmarshalMessage(*discordMsg)
 	return &md, nil
 }
 
@@ -185,7 +183,7 @@ func (d *Discord) UpdateMainMessage(data defs.MessageData) error {
 		return d.NewMainMessage(data)
 	}
 
-	md := d.marshalSendData(data)
+	md := marshalSendData(data)
 	ed := api.EditMessageData{
 		Content:     option.NewNullableString(md.Content),
 		Embeds:      &md.Embeds,
@@ -194,98 +192,6 @@ func (d *Discord) UpdateMainMessage(data defs.MessageData) error {
 
 	_, err = d.Session.EditMessageComplex(d.channels[d.mainCh], discord.MessageID(d.mid), ed)
 	return err
-}
-
-// marshalSendData transforms data of type defs.MessageData to api.SendMessageData
-// which arikawa expects.
-func (d *Discord) marshalSendData(data defs.MessageData) api.SendMessageData {
-	embeds := make([]discord.Embed, 0)
-	for _, embed := range data.Embeds {
-		fields := make([]discord.EmbedField, 0)
-
-		for _, field := range embed.Fields {
-			dField := discord.EmbedField{
-				Name:   field.Name,
-				Value:  field.Value,
-				Inline: field.Inline,
-			}
-			fields = append(fields, dField)
-		}
-
-		dEmbed := discord.Embed{
-			Title:       embed.Title,
-			Description: embed.Description,
-			Fields:      fields,
-		}
-		if embed.Image != nil {
-			URL := embed.Image.Filename
-			if !strings.Contains(embed.Image.Filename, "https://cdn.discordapp.com/attachments") {
-				URL = "attachment://" + URL
-			}
-			dEmbed.Image = &discord.EmbedImage{URL: URL}
-		}
-
-		embeds = append(embeds, dEmbed)
-	}
-
-	files := make([]sendpart.File, 0)
-	for _, file := range data.Files {
-		files = append(files, sendpart.File{
-			Name:   file.Name,
-			Reader: file.Reader,
-		})
-	}
-
-	md := api.SendMessageData{
-		Content: data.Content,
-		Embeds:  embeds,
-		Files:   files,
-	}
-
-	if data.MentionEveryone {
-		md.AllowedMentions = &api.AllowedMentions{
-			Parse: []api.AllowedMentionType{api.AllowEveryoneMention},
-		}
-	}
-
-	return md
-}
-
-// unmarshalSendData transforms data of type discord.Message to defs.MessageData.
-func (d *Discord) unmarshalSendData(data discord.Message) defs.MessageData {
-	embeds := make([]defs.EmbedData, 0)
-	for _, embed := range data.Embeds {
-		fields := make([]defs.EmbedField, 0)
-
-		for _, field := range embed.Fields {
-			dField := defs.EmbedField{
-				Name:   field.Name,
-				Value:  field.Value,
-				Inline: field.Inline,
-			}
-			fields = append(fields, dField)
-		}
-
-		dEmbed := defs.EmbedData{
-			Title:       embed.Title,
-			Description: embed.Description,
-			Fields:      fields,
-		}
-		if embed.Image != nil {
-			dEmbed.Image = &defs.ImageData{
-				Filename: strings.ReplaceAll(embed.Image.URL, "attachment://", ""),
-			}
-		}
-
-		embeds = append(embeds, dEmbed)
-	}
-
-	md := defs.MessageData{
-		Content: data.Content,
-		Embeds:  embeds,
-	}
-
-	return md
 }
 
 func (d *Discord) deleteMessages(chid discord.ChannelID, exclude discord.MessageID) error {
