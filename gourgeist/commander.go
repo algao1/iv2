@@ -51,11 +51,13 @@ type CommandHandler struct {
 
 func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCreateEvent) {
 	return func(e *gateway.InteractionCreateEvent) {
-		var err error
 		switch data := e.Data.(type) {
 		case *discord.CommandInteraction:
-			if err = ch.handleCommand(data); err != nil {
-				ch.Logger.Debug("unable to handle command", zap.String("command", data.Name), zap.Error(err))
+			if err := ch.handleCommand(data); err != nil {
+				ch.Logger.Debug("unable to handle command",
+					zap.String("command", data.Name),
+					zap.Error(err),
+				)
 			}
 		}
 
@@ -75,7 +77,10 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 }
 
 func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error {
-	ch.Logger.Debug("received command", zap.String("cmd", data.Name))
+	ch.Logger.Debug("received command",
+		zap.String("cmd", data.Name),
+		zap.Any("options", data.Options),
+	)
 
 	switch data.Name {
 	case AddCarbsCmd:
@@ -89,13 +94,12 @@ func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error 
 	case GenReportCmd:
 		return ch.handleGenReport(data)
 	default:
-		return fmt.Errorf("received unknown command: %s", data.Name)
+		return fmt.Errorf("unknown command: %s", data.Name)
 	}
 }
 
 func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 	amount, _ := data.Options[0].IntValue()
-	ch.Logger.Debug("carbs", zap.Int("amount", int(amount)))
 
 	_, err := ch.Store.WriteCarbs(context.Background(), &defs.Carb{
 		Time:   time.Now().In(ch.Location),
@@ -105,12 +109,7 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 		return fmt.Errorf("unable to save carbs: %w", err)
 	}
 
-	err = ch.updateWithEvent()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ch.updateWithEvent()
 }
 
 func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) error {
@@ -132,6 +131,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 		for _, c := range carbs {
 			if hashDigest(string(c.ID)) == id {
 				carb = c
+				break
 			}
 		}
 		if reflect.ValueOf(carb).IsZero() {
@@ -154,9 +154,9 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 		case "offset":
 			minuteOffset, err = opt.IntValue()
 		}
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	if amount < 0 {
@@ -179,18 +179,12 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 		}
 	}
 
-	err = ch.updateWithEvent()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ch.updateWithEvent()
 }
 
 func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error {
 	insulinType := data.Options[0].String()
 	units, _ := data.Options[1].FloatValue()
-	ch.Logger.Debug("insulin", zap.Float64("units", units), zap.String("type", insulinType))
 
 	_, err := ch.Store.WriteInsulin(context.Background(), &defs.Insulin{
 		Time:   time.Now().In(ch.Location),
@@ -201,12 +195,7 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 		return fmt.Errorf("unable to save insulin: %w", err)
 	}
 
-	err = ch.updateWithEvent()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ch.updateWithEvent()
 }
 
 func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) error {
@@ -228,6 +217,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		for _, insul := range insuls {
 			if hashDigest(string(insul.ID)) == id {
 				ins = insul
+				break
 			}
 		}
 		if reflect.ValueOf(ins).IsZero() {
@@ -253,9 +243,9 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		case "offset":
 			minuteOffset, err = opt.IntValue()
 		}
-	}
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	if units < 0 {
@@ -279,12 +269,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		}
 	}
 
-	err = ch.updateWithEvent()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ch.updateWithEvent()
 }
 
 func (ch *CommandHandler) updateWithEvent() error {
