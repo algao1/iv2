@@ -9,6 +9,7 @@ import (
 	"iv2/gourgeist/pkg/ghastly/proto"
 	"iv2/gourgeist/pkg/mg"
 	"iv2/gourgeist/pkg/stats"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -113,15 +114,37 @@ func (ch *CommandHandler) handleCarbs(data *discord.CommandInteraction) error {
 }
 
 func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) error {
+	ctx := context.Background()
 	id := data.Options[0].String()
 
-	var carbs defs.Carb
-	err := ch.Store.DocByID(context.Background(), mg.CarbsCollection, id, &carbs)
-	if err != nil {
-		return err
+	var carb defs.Carb
+	var err error
+	if len(id) == 6 {
+		carbs, err := ch.Store.ReadCarbs(
+			ctx,
+			time.Now().Add(lookbackInterval),
+			time.Now(),
+		)
+		if err != nil {
+			return err
+		}
+
+		for _, c := range carbs {
+			if hashDigest(string(c.ID)) == id {
+				carb = c
+			}
+		}
+		if reflect.ValueOf(carb).IsZero() {
+			return fmt.Errorf("no entry found with digest %s", id)
+		}
+	} else {
+		err := ch.Store.DocByID(ctx, mg.CarbsCollection, id, &carb)
+		if err != nil {
+			return err
+		}
 	}
 
-	var amount = carbs.Amount
+	var amount = carb.Amount
 	var minuteOffset int64
 
 	for _, opt := range data.Options[1:] {
@@ -137,16 +160,16 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 	}
 
 	if amount < 0 {
-		if err := ch.Store.DeleteByID(context.Background(), mg.CarbsCollection, id); err != nil {
+		if err := ch.Store.DeleteByID(ctx, mg.CarbsCollection, string(carb.ID)); err != nil {
 			return err
 		}
 	} else {
-		newTime := carbs.Time.Add(time.Duration(minuteOffset * int64(time.Minute)))
+		newTime := carb.Time.Add(time.Duration(minuteOffset * int64(time.Minute)))
 		if newTime.After(time.Now()) {
 			return fmt.Errorf("unable to set time after current time")
 		}
 
-		_, err = ch.Store.UpdateCarbs(context.Background(), &defs.Carb{
+		_, err = ch.Store.UpdateCarbs(ctx, &defs.Carb{
 			ID:     defs.MyObjectID(id),
 			Time:   newTime,
 			Amount: float64(amount),
@@ -187,12 +210,34 @@ func (ch *CommandHandler) handleInsulin(data *discord.CommandInteraction) error 
 }
 
 func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) error {
+	ctx := context.Background()
 	id := data.Options[0].String()
 
 	var ins defs.Insulin
-	err := ch.Store.DocByID(context.Background(), mg.InsulinCollection, id, &ins)
-	if err != nil {
-		return err
+	var err error
+	if len(id) == 6 {
+		insuls, err := ch.Store.ReadInsulin(
+			ctx,
+			time.Now().Add(lookbackInterval),
+			time.Now(),
+		)
+		if err != nil {
+			return err
+		}
+
+		for _, insul := range insuls {
+			if hashDigest(string(insul.ID)) == id {
+				ins = insul
+			}
+		}
+		if reflect.ValueOf(ins).IsZero() {
+			return fmt.Errorf("no entry found with digest %s", id)
+		}
+	} else {
+		err := ch.Store.DocByID(ctx, mg.InsulinCollection, id, &ins)
+		if err != nil {
+			return err
+		}
 	}
 
 	var units = ins.Amount
@@ -214,7 +259,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 	}
 
 	if units < 0 {
-		if err := ch.Store.DeleteByID(context.Background(), mg.InsulinCollection, id); err != nil {
+		if err := ch.Store.DeleteByID(ctx, mg.InsulinCollection, string(ins.ID)); err != nil {
 			return err
 		}
 	} else {
@@ -223,7 +268,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 			return fmt.Errorf("unable to set time after current time")
 		}
 
-		_, err = ch.Store.UpdateInsulin(context.Background(), &defs.Insulin{
+		_, err = ch.Store.UpdateInsulin(ctx, &defs.Insulin{
 			ID:     defs.MyObjectID(id),
 			Time:   newTime,
 			Amount: units,
@@ -339,59 +384,4 @@ func startOfWeek(t time.Time) time.Time {
 
 func startOfMonth(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), 0, 0, 0, 0, 0, t.Location())
-}
-
-type DescriptionStore interface {
-	mg.InsulinStore
-	mg.CarbStore
-}
-
-// TODO: Shouldn't really be put here, need to relocate.
-
-func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
-	end := time.Now().In(loc)
-	start := end.Add(lookbackInterval)
-
-	ins, err := s.ReadInsulin(context.Background(), start, end)
-	if err != nil {
-		return "", err
-	}
-
-	carbs, err := s.ReadCarbs(context.Background(), start, end)
-	if err != nil {
-		return "", err
-	}
-
-	max_len := logLimit
-	if len(ins)+len(carbs) < max_len {
-		max_len = len(ins) + len(carbs)
-	}
-	if max_len == 0 {
-		return "", nil
-	}
-
-	desc := "```"
-	i := len(ins) - 1
-	j := len(carbs) - 1
-	for t := 0; t < max_len; t++ {
-		// TODO: Make this cleaner.
-		if i >= 0 && (j < 0 || ins[i].Time.After(carbs[j].Time)) {
-			desc += fmt.Sprintf("%s :: %s\n",
-				ins[i].Time.In(loc).Format(CmdTimeFormat),
-				ins[i].ID,
-			)
-			desc += fmt.Sprintf("insulin %s %.2f\n", ins[i].Type, ins[i].Amount)
-			i--
-		} else {
-			desc += fmt.Sprintf("%s :: %s\n",
-				carbs[j].Time.In(loc).Format(CmdTimeFormat),
-				carbs[j].ID,
-			)
-			desc += fmt.Sprintf("carbs %.2f\n", carbs[j].Amount)
-			j--
-		}
-	}
-	desc += "```"
-
-	return desc, nil
 }
