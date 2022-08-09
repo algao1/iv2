@@ -170,7 +170,7 @@ func (ch *CommandHandler) handleEditCarbs(data *discord.CommandInteraction) erro
 		}
 
 		_, err = ch.Store.UpdateCarbs(ctx, &defs.Carb{
-			ID:     defs.MyObjectID(id),
+			ID:     carb.ID,
 			Time:   newTime,
 			Amount: float64(amount),
 		})
@@ -259,7 +259,7 @@ func (ch *CommandHandler) handleEditInsulin(data *discord.CommandInteraction) er
 		}
 
 		_, err = ch.Store.UpdateInsulin(ctx, &defs.Insulin{
-			ID:     defs.MyObjectID(id),
+			ID:     ins.ID,
 			Time:   newTime,
 			Amount: units,
 			Type:   insType,
