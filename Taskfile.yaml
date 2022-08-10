@@ -1,0 +1,42 @@
+version: "3"
+
+dotenv: [".env"]
+
+tasks:
+  mongo-dump:
+    cmds:
+      - mongodump -u=${MONGO_USERNAME} -p=${MONGO_PASSWORD} -o "dump_$(date +'%m_%d_%Y_%H:%M')"
+
+  mongo-recover:
+    cmds:
+      - mongorestore --username $MONGO_USERNAME --password $MONGO_PASSWORD $(ls -d dump_* | tail -1)
+
+  mongo-tools-setup:
+    cmds:
+      - curl https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2004-x86_64-100.5.3.tgz -o mongodb-database-tools-ubuntu2004-x86_64-100.5.3.tgz
+      - tar -zxvf mongodb-database-tools-*-100.5.3.tgz
+      - mv mongodb-database-tools-*-100.5.3 /usr/local/bin/
+      - echo 'export PATH=$PATH:/usr/local/bin/mongodb-database-tools-ubuntu2004-x86_64-100.5.3/bin' >> ~/.bashrc
+      - rm mongodb-database-tools-*-100.5.3.tgz
+
+  proto:
+    cmds:
+      - mkdir -p gourgeist/pkg/ghastly/proto
+      - mkdir -p trevenant/ghastly/proto
+      - protoc
+        --go_out=gourgeist/pkg/ghastly/proto --go_opt=paths=source_relative
+        --go-grpc_out=gourgeist/pkg/ghastly/proto --go-grpc_opt=paths=source_relative
+        ghastly.proto
+      - python3 -m grpc_tools.protoc -I.
+        --python_out=trevenant/ghastly/proto --grpc_python_out=trevenant/ghastly/proto
+        ghastly.proto
+      # Replace import with relative import.
+      - sed -i 's/^import .*_pb2 as/from . \0/' trevenant/ghastly/proto/ghastly_pb2_grpc.py
+
+  start:
+    cmds:
+      - go run cmd/gourgeist/main.go
+
+  test:
+    cmds:
+      - go test ./gourgeist/... -covermode=set
