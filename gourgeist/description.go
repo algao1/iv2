@@ -14,6 +14,10 @@ type DescriptionStore interface {
 	mg.CarbStore
 }
 
+func wrapDescription(desc string) string {
+	return "```" + desc + "```"
+}
+
 func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
 	end := time.Now().In(loc)
 	start := end.Add(lookbackInterval)
@@ -36,7 +40,7 @@ func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
 		return "", nil
 	}
 
-	desc := "```"
+	var desc string
 	i := len(ins) - 1
 	j := len(carbs) - 1
 	for t := 0; t < max_len; t++ {
@@ -53,9 +57,8 @@ func newDescription(s DescriptionStore, loc *time.Location) (string, error) {
 			j--
 		}
 	}
-	desc += "```"
 
-	return desc, nil
+	return wrapDescription(desc), nil
 }
 
 func hashDigest(s string) string {

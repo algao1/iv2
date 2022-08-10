@@ -329,13 +329,52 @@ func (ch *CommandHandler) handleGenReport(data *discord.CommandInteraction) erro
 		return err
 	}
 
+	insulin, err := ch.Store.ReadInsulin(context.Background(), start, end)
+	if err != nil {
+		return err
+	}
+
+	carbs, err := ch.Store.ReadCarbs(context.Background(), start, end)
+	if err != nil {
+		return err
+	}
+
 	ra := stats.TimeSpentInRange(glucose, ch.GlucoseConfig.Low, ch.GlucoseConfig.High)
 	ss := stats.GlucoseSummary(glucose)
+	dd := stats.DailyAggregate(stats.IntakeData{Ins: insulin, Carbs: carbs}, ch.Location)
+
+	var desc string
+	desc += fmt.Sprintf(
+		"%5s %6s %6s %6s\n",
+		"",
+		defs.RapidActing.String(),
+		defs.SlowActing.String(),
+		"carbs",
+	)
+	for _, day := range dd.Days {
+		var rSum, sSum float64
+		for _, v := range dd.InsMap[day] {
+			switch v.Type {
+			case defs.RapidActing.String():
+				rSum += v.Amount
+			case defs.SlowActing.String():
+				sSum += v.Amount
+			}
+		}
+
+		var cSum float64
+		for _, v := range dd.CarbsMap[day] {
+			cSum += v.Amount
+		}
+
+		desc += fmt.Sprintf("%s %6.f %6.f %6.f\n", day.Format(MonthDayFormat), rSum, sSum, cSum)
+	}
 
 	msgData := defs.MessageData{
 		Embeds: []defs.EmbedData{
 			{
-				Title: fmt.Sprintf("%s to %s", start.Format(MonthDayFormat), end.Format(MonthDayFormat)),
+				Title:       fmt.Sprintf("%s to %s", start.Format(MonthDayFormat), end.Format(MonthDayFormat)),
+				Description: wrapDescription(desc),
 				Fields: []defs.EmbedField{
 					{Name: "Average", Value: strconv.FormatFloat(ss.Average, 'f', 2, 64), Inline: true},
 					{Name: "Deviation", Value: strconv.FormatFloat(ss.Deviation, 'f', 2, 64), Inline: true},
