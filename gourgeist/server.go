@@ -2,6 +2,7 @@ package gourgeist
 
 import (
 	"context"
+	"iv2/gourgeist/commander"
 	"iv2/gourgeist/defs"
 	"iv2/gourgeist/pkg/dexcom"
 	"iv2/gourgeist/pkg/discgo"
@@ -15,18 +16,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const (
-	DownloaderInterval = 1 * time.Minute
-	UpdaterInterval    = DownloaderInterval
-	timeoutInterval    = 2 * time.Second
-
-	alertsChannel  = "alerts"
-	reportsChannel = "reports"
-	defaultDBName  = "ichor"
-)
-
 func Run(cfg defs.Config) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutInterval)
+	ctx, cancel := context.WithTimeout(context.Background(), defs.TimeoutInterval)
 	defer cancel()
 
 	var err error
@@ -39,7 +30,7 @@ func Run(cfg defs.Config) {
 		}
 	}
 
-	ms, err := mg.New(ctx, cfg.Mongo, defaultDBName, cfg.Logger)
+	ms, err := mg.New(ctx, cfg.Mongo, defs.DefaultDB, cfg.Logger)
 	if err != nil {
 		panic(err)
 	}
@@ -69,7 +60,7 @@ func Run(cfg defs.Config) {
 	}
 	gh := ghastly.New(conn, cfg.Logger)
 
-	ch := CommandHandler{
+	ch := commander.CommandHandler{
 		Display:       dg,
 		Plotter:       gh,
 		Store:         ms,
@@ -79,8 +70,8 @@ func Run(cfg defs.Config) {
 	}
 
 	if err = dg.Setup(
-		[]string{alertsChannel, reportsChannel},
-		ch.InteractionCreateHandler(),
+		[]string{defs.AlertsChannel, defs.ReportsChannel},
+		ch.CreateHandler(),
 	); err != nil {
 		panic(err)
 	}
@@ -111,7 +102,7 @@ func Run(cfg defs.Config) {
 
 	// TODO: Eventually, separate this out to be triggered by updates
 	// so that they don't run constantly.
-	ExecuteTask("loop", DownloaderInterval, func() error {
+	ExecuteTask("loop", defs.DownloaderInterval, func() error {
 		var err error
 		if err = f.FetchAndLoad(); err != nil {
 			cfg.Logger.Error("fetching error", zap.Error(err))

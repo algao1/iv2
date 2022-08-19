@@ -11,12 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	HighGlucoseLabel        = "High Glucose"
-	LowGlucoseLabel         = "Low Glucose"
-	MissingSlowInsulinLabel = "Missing Slow Acting Insulin"
-)
-
 type AnalyzerStore interface {
 	mg.GlucoseStore
 	mg.InsulinStore
@@ -52,7 +46,7 @@ func (an *Analyzer) Run() error {
 
 func (an *Analyzer) AnalyzeGlucose() error {
 	ctx := context.Background()
-	now, start := time.Now(), time.Now().Add(lookbackInterval)
+	now, start := time.Now(), time.Now().Add(defs.LookbackInterval)
 
 	glucose, err := an.Store.ReadGlucose(ctx, start, now)
 	if err != nil {
@@ -68,9 +62,9 @@ func (an *Analyzer) AnalyzeGlucose() error {
 	lowAlert, highAlert := true, true
 	for _, alert := range alerts {
 		switch alert.Label {
-		case LowGlucoseLabel:
+		case defs.LowGlucoseLabel:
 			lowAlert = false
-		case HighGlucoseLabel:
+		case defs.HighGlucoseLabel:
 			highAlert = false
 		}
 	}
@@ -78,12 +72,12 @@ func (an *Analyzer) AnalyzeGlucose() error {
 	recentVal := glucose[len(glucose)-1].Mmol
 	if recentVal >= an.GlucoseConfig.High && highAlert {
 		return an.genAndSendAlert(
-			HighGlucoseLabel,
+			defs.HighGlucoseLabel,
 			fmt.Sprintf("current value: %.2f ≥ %.2f", recentVal, an.GlucoseConfig.High),
 		)
 	} else if recentVal <= an.GlucoseConfig.Low && lowAlert {
 		return an.genAndSendAlert(
-			LowGlucoseLabel,
+			defs.LowGlucoseLabel,
 			fmt.Sprintf("current value: %.2f ≤ %.2f", recentVal, an.GlucoseConfig.Low),
 		)
 	}
@@ -112,14 +106,14 @@ func (an *Analyzer) AnalyzeInsulin() error {
 	alerts, _ := an.Store.ReadAlerts(ctx, alertStart, now)
 	for _, alert := range alerts {
 		switch alert.Label {
-		case MissingSlowInsulinLabel:
+		case defs.MissingSlowInsulinLabel:
 			missingAlert = false
 		}
 	}
 
 	if missingAlert {
 		return an.genAndSendAlert(
-			MissingSlowInsulinLabel,
+			defs.MissingSlowInsulinLabel,
 			fmt.Sprintf("last administered: ≥ %d hours ago", 24),
 		)
 	}
@@ -140,7 +134,7 @@ func (an *Analyzer) genAndSendAlert(label, reason string) error {
 	_, err = an.Messager.SendMessage(defs.MessageData{
 		Content:         fmt.Sprintln("⚠️ "+label) + fmt.Sprintln(reason) + "@everyone",
 		MentionEveryone: true,
-	}, alertsChannel)
+	}, defs.AlertsChannel)
 	if err != nil {
 		return err
 	}

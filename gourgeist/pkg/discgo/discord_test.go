@@ -56,7 +56,7 @@ func (suite *DiscordTestSuite) SetupSuite() {
 	discgo.mainCh = testChannel
 	suite.discgo = discgo
 
-	assert.NoError(suite.T(), suite.discgo.Setup([]string{}), "unable to complete setup")
+	assert.NoError(suite.T(), suite.discgo.Setup([]string{}, nil), "unable to complete setup")
 }
 
 func (suite *DiscordTestSuite) AfterTest(_, _ string) {

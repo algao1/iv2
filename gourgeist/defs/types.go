@@ -50,16 +50,12 @@ type Carb struct {
 	Amount float64    `bson:"amount"`
 }
 
-type Label int
-
+// Labels.
 const (
-	HighGlucose Label = iota
-	LowGlucose
+	HighGlucoseLabel        = "High Glucose"
+	LowGlucoseLabel         = "Low Glucose"
+	MissingSlowInsulinLabel = "Missing Slow Acting Insulin"
 )
-
-func (l Label) String() string {
-	return [...]string{"High Glucose", "Low Glucose"}[l]
-}
 
 type Alert struct {
 	ID     MyObjectID `bson:"_id,omitempty"`
@@ -116,6 +112,8 @@ func EmptyEmbed() EmbedField {
 	}
 }
 
+// Interactions.
+
 type InteractionResponseType int
 
 const (
@@ -125,4 +123,22 @@ const (
 type InteractionResponse struct {
 	Type InteractionResponseType
 	Data MessageData
+}
+
+type CommandInteractionHandler func(EventInfo, CommandInteraction)
+
+type EventInfo struct {
+	ID    uint64
+	AppID uint64
+	Token string
+}
+
+type CommandInteraction struct {
+	Name    string
+	Options []CommandInteractionOption
+}
+
+type CommandInteractionOption struct {
+	Name  string
+	Value string
 }

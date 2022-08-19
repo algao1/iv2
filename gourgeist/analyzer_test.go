@@ -83,10 +83,10 @@ func (suite *AnalyzerSuite) TestGlucoseAlerts() {
 	assert.NoError(suite.T(), err)
 
 	assert.NoError(suite.T(), suite.analyzer.AnalyzeGlucose())
-	assert.Len(suite.T(), suite.msger.Channels[alertsChannel], 1)
+	assert.Len(suite.T(), suite.msger.Channels[defs.AlertsChannel], 1)
 
-	alert := suite.msger.Channels[alertsChannel][0]
-	label := "⚠️ " + LowGlucoseLabel
+	alert := suite.msger.Channels[defs.AlertsChannel][0]
+	label := "⚠️ " + defs.LowGlucoseLabel
 	assert.True(suite.T(), strings.Contains(alert.Content, label))
 }
 
@@ -99,10 +99,10 @@ func (suite *AnalyzerSuite) TestHighGlucoseAlert() {
 	assert.NoError(suite.T(), err)
 
 	assert.NoError(suite.T(), suite.analyzer.AnalyzeGlucose())
-	assert.Len(suite.T(), suite.msger.Channels[alertsChannel], 1)
+	assert.Len(suite.T(), suite.msger.Channels[defs.AlertsChannel], 1)
 
-	alert := suite.msger.Channels[alertsChannel][0]
-	label := "⚠️ " + HighGlucoseLabel
+	alert := suite.msger.Channels[defs.AlertsChannel][0]
+	label := "⚠️ " + defs.HighGlucoseLabel
 	assert.True(suite.T(), strings.Contains(alert.Content, label))
 }
 
@@ -116,14 +116,14 @@ func (suite *AnalyzerSuite) TestSlowInsulinNoAlert() {
 	assert.NoError(suite.T(), err)
 
 	assert.NoError(suite.T(), suite.analyzer.AnalyzeInsulin())
-	assert.Len(suite.T(), suite.msger.Channels[alertsChannel], 0)
+	assert.Len(suite.T(), suite.msger.Channels[defs.AlertsChannel], 0)
 }
 
 func (suite *AnalyzerSuite) TestSlowInsulinAlert() {
 	assert.NoError(suite.T(), suite.analyzer.AnalyzeInsulin())
-	assert.Len(suite.T(), suite.msger.Channels[alertsChannel], 1)
+	assert.Len(suite.T(), suite.msger.Channels[defs.AlertsChannel], 1)
 
-	alert := suite.msger.Channels[alertsChannel][0]
-	label := "⚠️ " + MissingSlowInsulinLabel
+	alert := suite.msger.Channels[defs.AlertsChannel][0]
+	label := "⚠️ " + defs.MissingSlowInsulinLabel
 	assert.True(suite.T(), strings.Contains(alert.Content, label))
 }

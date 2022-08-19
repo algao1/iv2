@@ -74,11 +74,14 @@ func New(token, guildID string, logger *zap.Logger, loc *time.Location) (*Discor
 
 // TODO: Function signature is overloaded, need addressing.
 
-func (d *Discord) Setup(channels []string, handlers ...interface{}) error {
+func (d *Discord) Setup(channels []string,
+	cmdHandler defs.CommandInteractionHandler) error {
 	app, err := d.Session.CurrentApplication()
 	if err != nil {
 		return fmt.Errorf("unable to get current application: %w", err)
 	}
+
+	d.addCmdHandler(cmdHandler)
 
 	oldCmds, err := d.Session.Commands(app.ID)
 	if err != nil {
@@ -101,13 +104,8 @@ func (d *Discord) Setup(channels []string, handlers ...interface{}) error {
 		}
 	}
 
-	for _, handler := range handlers {
-		d.Session.AddHandler(handler)
-	}
-
-	d.channels = make(map[string]discord.ChannelID)
-
 	// Populate existing channels.
+	d.channels = make(map[string]discord.ChannelID)
 	existChannels, err := d.Session.Channels(d.gid)
 	if err != nil {
 		return fmt.Errorf("unable to get channels: %w", err)
@@ -134,6 +132,32 @@ func (d *Discord) Setup(channels []string, handlers ...interface{}) error {
 
 	d.Logger.Debug("discord setup complete")
 	return nil
+}
+
+func (d *Discord) addCmdHandler(cmdHandler defs.CommandInteractionHandler) {
+	f := func(e *gateway.InteractionCreateEvent) {
+		switch data := e.Data.(type) {
+		case *discord.CommandInteraction:
+			opts := make([]defs.CommandInteractionOption, 0)
+			for _, opt := range data.Options {
+				opts = append(opts, defs.CommandInteractionOption{
+					Name:  opt.Name,
+					Value: opt.String(),
+				})
+			}
+
+			ci := defs.CommandInteraction{
+				Name:    data.Name,
+				Options: opts,
+			}
+			cmdHandler(defs.EventInfo{
+				ID:    uint64(e.ID),
+				AppID: uint64(e.AppID),
+				Token: e.Token,
+			}, ci)
+		}
+	}
+	d.Session.AddHandler(f)
 }
 
 func (d *Discord) SendMessage(data defs.MessageData, chName string) (uint64, error) {

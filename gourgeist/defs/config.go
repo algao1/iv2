@@ -1,6 +1,26 @@
 package defs
 
-import "go.uber.org/zap"
+import (
+	"time"
+
+	"go.uber.org/zap"
+)
+
+const DefaultDB = "ichor"
+
+// Intervals.
+const (
+	LookbackInterval   = -12 * time.Hour
+	DownloaderInterval = 1 * time.Minute
+	UpdaterInterval    = 1 * time.Minute
+	TimeoutInterval    = 2 * time.Second
+)
+
+// Channels.
+const (
+	AlertsChannel  = "alerts"
+	ReportsChannel = "reports"
+)
 
 type Config struct {
 	Dexcom        DexcomConfig  `yaml:"dexcom"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/defs"
+	dcr "iv2/gourgeist/pkg/desc"
 	"iv2/gourgeist/pkg/discgo"
 	"iv2/gourgeist/pkg/ghastly"
 	"iv2/gourgeist/pkg/mg"
@@ -13,8 +14,6 @@ import (
 
 	"go.uber.org/zap"
 )
-
-const lookbackInterval = -12 * time.Hour
 
 type PlotterStore interface {
 	mg.GlucoseStore
@@ -37,10 +36,20 @@ type PlotUpdater struct {
 
 func (pu PlotUpdater) Update() error {
 	end := time.Now()
-	start := end.Add(lookbackInterval)
+	start := end.Add(defs.LookbackInterval)
 	ctx := context.Background()
 
 	glucose, err := pu.Store.ReadGlucose(ctx, start, end)
+	if err != nil {
+		return err
+	}
+
+	insulin, err := pu.Store.ReadInsulin(context.Background(), start, end)
+	if err != nil {
+		return err
+	}
+
+	carbs, err := pu.Store.ReadCarbs(context.Background(), start, end)
 	if err != nil {
 		return err
 	}
@@ -92,7 +101,7 @@ func (pu PlotUpdater) Update() error {
 		},
 	}
 
-	desc, err := newDescription(pu.Store, pu.Location)
+	desc, err := dcr.New(insulin, carbs, pu.Location)
 	if err == nil {
 		embed.Description = desc
 	}
