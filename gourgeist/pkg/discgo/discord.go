@@ -74,19 +74,19 @@ func New(token, guildID string, logger *zap.Logger, loc *time.Location) (*Discor
 
 // TODO: Function signature is overloaded, need addressing.
 
-func (d *Discord) Setup(cmds []api.CreateCommandData, channels []string, handlers ...interface{}) error {
+func (d *Discord) Setup(channels []string, handlers ...interface{}) error {
 	app, err := d.Session.CurrentApplication()
 	if err != nil {
 		return fmt.Errorf("unable to get current application: %w", err)
 	}
 
-	commands, err := d.Session.Commands(app.ID)
+	oldCmds, err := d.Session.Commands(app.ID)
 	if err != nil {
 		return fmt.Errorf("unable to fetch commands: %w", err)
 	}
 
 	// Delete old commands.
-	for _, command := range commands {
+	for _, command := range oldCmds {
 		d.Session.DeleteCommand(app.ID, command.ID)
 		d.Logger.Info("deleted command",
 			zap.Any("command id", command.ID),
@@ -95,7 +95,7 @@ func (d *Discord) Setup(cmds []api.CreateCommandData, channels []string, handler
 	}
 
 	// Create commands.
-	for _, cmd := range cmds {
+	for _, cmd := range defs.Commands {
 		if _, err = d.Session.CreateGuildCommand(app.ID, d.gid, cmd); err != nil {
 			return fmt.Errorf("unable to create guild commands: %w", err)
 		}

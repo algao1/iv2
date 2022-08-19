@@ -78,12 +78,10 @@ func Run(cfg defs.Config) {
 		GlucoseConfig: cfg.Glucose,
 	}
 
-	err = dg.Setup(
-		Commands,
+	if err = dg.Setup(
 		[]string{alertsChannel, reportsChannel},
 		ch.InteractionCreateHandler(),
-	)
-	if err != nil {
+	); err != nil {
 		panic(err)
 	}
 

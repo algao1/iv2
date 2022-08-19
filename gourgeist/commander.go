@@ -81,15 +81,15 @@ func (ch *CommandHandler) handleCommand(data *discord.CommandInteraction) error 
 	)
 
 	switch data.Name {
-	case AddCarbsCmd:
+	case defs.AddCarbsCmd:
 		return ch.handleCarbs(data)
-	case EditCarbsCmd:
+	case defs.EditCarbsCmd:
 		return ch.handleEditCarbs(data)
-	case AddInsulinCmd:
+	case defs.AddInsulinCmd:
 		return ch.handleInsulin(data)
-	case EditInsulinCmd:
+	case defs.EditInsulinCmd:
 		return ch.handleEditInsulin(data)
-	case GenReportCmd:
+	case defs.GenReportCmd:
 		return ch.handleGenReport(data)
 	default:
 		return fmt.Errorf("unknown command: %s", data.Name)

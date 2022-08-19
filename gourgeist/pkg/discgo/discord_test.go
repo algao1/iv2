@@ -55,14 +55,20 @@ func (suite *DiscordTestSuite) SetupSuite() {
 	// TODO: Need to redo this eventually, not a good system.
 	discgo.mainCh = testChannel
 	suite.discgo = discgo
-}
 
-func (suite *DiscordTestSuite) BeforeTest(_, _ string) {
-	err := suite.discgo.Setup([]api.CreateCommandData{}, []string{})
-	assert.NoError(suite.T(), err, "unable to complete setup")
+	assert.NoError(suite.T(), suite.discgo.Setup([]string{}), "unable to complete setup")
 }
 
 func (suite *DiscordTestSuite) AfterTest(_, _ string) {
+	for name, id := range suite.discgo.channels {
+		if name == testChannel {
+			err := suite.discgo.deleteMessages(id, 0)
+			assert.NoError(suite.T(), err, "unable to clean up test channel")
+		}
+	}
+}
+
+func (suite *DiscordTestSuite) TearDownSuite() {
 	for name, id := range suite.discgo.channels {
 		if name == testChannel {
 			err := suite.discgo.Session.DeleteChannel(id, api.AuditLogReason("delete test channel"))

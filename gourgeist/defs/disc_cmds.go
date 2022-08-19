@@ -1,8 +1,6 @@
-package gourgeist
+package defs
 
 import (
-	"iv2/gourgeist/defs"
-
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -70,12 +68,12 @@ var addInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 			Required:    true,
 			Choices: []discord.StringChoice{
 				{
-					Name:  defs.RapidActing.String(),
-					Value: defs.RapidActing.String(),
+					Name:  RapidActing.String(),
+					Value: RapidActing.String(),
 				},
 				{
-					Name:  defs.SlowActing.String(),
-					Value: defs.SlowActing.String(),
+					Name:  SlowActing.String(),
+					Value: SlowActing.String(),
 				},
 			},
 		},
@@ -102,12 +100,12 @@ var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 			Description: "Type of insulin (fast, slow).",
 			Choices: []discord.StringChoice{
 				{
-					Name:  defs.RapidActing.String(),
-					Value: defs.RapidActing.String(),
+					Name:  RapidActing.String(),
+					Value: RapidActing.String(),
 				},
 				{
-					Name:  defs.SlowActing.String(),
-					Value: defs.SlowActing.String(),
+					Name:  SlowActing.String(),
+					Value: SlowActing.String(),
 				},
 			},
 		},
