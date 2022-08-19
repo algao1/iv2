@@ -115,3 +115,14 @@ func EmptyEmbed() EmbedField {
 		Inline: true,
 	}
 }
+
+type InteractionResponseType int
+
+const (
+	MessageInteraction InteractionResponseType = iota
+)
+
+type InteractionResponse struct {
+	Type InteractionResponseType
+	Data MessageData
+}

@@ -45,8 +45,8 @@ type Messager interface {
 }
 
 type Interactioner interface {
-	RespondInteraction(id discord.InteractionID, token string, resp api.InteractionResponse) error
-	DeleteInteractionResponse(appID discord.AppID, token string) error
+	RespondInteraction(id uint64, token string, resp defs.InteractionResponse) error
+	DeleteInteractionResponse(appID uint64, token string) error
 }
 
 func New(token, guildID string, logger *zap.Logger, loc *time.Location) (*Discord, error) {
@@ -219,10 +219,18 @@ func (d *Discord) deleteMessages(chid discord.ChannelID, exclude discord.Message
 	return nil
 }
 
-func (d *Discord) RespondInteraction(id discord.InteractionID, token string, resp api.InteractionResponse) error {
-	return d.Session.RespondInteraction(id, token, resp)
+func (d *Discord) RespondInteraction(id uint64, token string, resp defs.InteractionResponse) error {
+	// Currently only supports content replies.
+	sendData := marshalSendData(resp.Data)
+	msgResp := api.InteractionResponse{
+		Type: api.MessageInteractionWithSource,
+		Data: &api.InteractionResponseData{
+			Content: option.NewNullableString(sendData.Content),
+		},
+	}
+	return d.Session.RespondInteraction(discord.InteractionID(id), token, msgResp)
 }
 
-func (d *Discord) DeleteInteractionResponse(appID discord.AppID, token string) error {
-	return d.Session.DeleteInteractionResponse(appID, token)
+func (d *Discord) DeleteInteractionResponse(appID uint64, token string) error {
+	return d.Session.DeleteInteractionResponse(discord.AppID(appID), token)
 }

@@ -13,10 +13,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"go.uber.org/zap"
 )
 
@@ -61,16 +59,16 @@ func (ch *CommandHandler) InteractionCreateHandler() func(*gateway.InteractionCr
 			}
 		}
 
-		resp := api.InteractionResponse{
-			Type: api.MessageInteractionWithSource,
-			Data: &api.InteractionResponseData{Content: option.NewNullableString("received")},
+		resp := defs.InteractionResponse{
+			Type: defs.MessageInteraction,
+			Data: defs.MessageData{Content: "received"},
 		}
 
-		if err := ch.Display.RespondInteraction(e.ID, e.Token, resp); err != nil {
+		if err := ch.Display.RespondInteraction(uint64(e.ID), e.Token, resp); err != nil {
 			ch.Logger.Debug("unable to send interaction callback", zap.Error(err))
 			return
 		}
-		if err := ch.Display.DeleteInteractionResponse(e.AppID, e.Token); err != nil {
+		if err := ch.Display.DeleteInteractionResponse(uint64(e.AppID), e.Token); err != nil {
 			ch.Logger.Debug("unable to delete interaction response", zap.String("token", e.Token), zap.Error(err))
 		}
 	}
