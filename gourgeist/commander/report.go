@@ -19,7 +19,7 @@ func handleGenReport(cs CommanderStore, cd CommanderDisplay, p ghastly.Plotter,
 	timeframe := data.Options[0].Value
 	offset, _ := strconv.Atoi(data.Options[1].Value)
 
-	start := time.Now()
+	start := time.Now().In(loc)
 	var end time.Time
 
 	var fr *proto.FileResponse
