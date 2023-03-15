@@ -11,6 +11,7 @@ import (
 )
 
 var configFile string
+var realConfigFile defs.Config
 
 func init() {
 	flag.StringVar(&configFile, "f", "config.yaml", "config file")

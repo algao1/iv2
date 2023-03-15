@@ -3,10 +3,12 @@ WORKDIR /go/iv2
 COPY go.mod go.sum ./
 RUN go mod download
 
+ARG config_file=config.yaml
+
 FROM build_base as service_builder
 COPY gourgeist /go/iv2/gourgeist/
 COPY cmd/gourgeist/main.go /go/iv2/cmd/main.go
-COPY docker-config.yaml /go/iv2/config.yaml
+COPY ${config_file} /go/iv2/${config_file}
 WORKDIR /go/iv2
 RUN go build cmd/main.go
 
