@@ -4,6 +4,7 @@ import (
 	"context"
 	"iv2/gourgeist/commander"
 	"iv2/gourgeist/defs"
+	dcr "iv2/gourgeist/pkg/desc"
 	"iv2/gourgeist/pkg/dexcom"
 	"iv2/gourgeist/pkg/discgo"
 	"iv2/gourgeist/pkg/ghastly"
@@ -60,11 +61,14 @@ func Run(cfg defs.Config) {
 	}
 	gh := ghastly.New(conn, cfg.Logger)
 
+	d := dcr.New(loc)
+
 	ch := commander.CommandHandler{
 		Display:       dg,
 		Plotter:       gh,
 		Store:         ms,
 		Logger:        cfg.Logger,
+		Descriptor:    d,
 		Location:      loc,
 		GlucoseConfig: cfg.Glucose,
 	}
@@ -81,6 +85,7 @@ func Run(cfg defs.Config) {
 		Plotter:       gh,
 		Store:         ms,
 		Logger:        cfg.Logger,
+		Descriptor:    d,
 		Location:      loc,
 		GlucoseConfig: cfg.Glucose,
 	}

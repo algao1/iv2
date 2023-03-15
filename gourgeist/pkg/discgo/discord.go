@@ -83,18 +83,26 @@ func (d *Discord) Setup(channels []string,
 
 	d.addCmdHandler(cmdHandler)
 
-	oldCmds, err := d.Session.Commands(app.ID)
+	cmdSet := make(map[string]struct{})
+	for _, cmd := range defs.Commands {
+		cmdSet[cmd.Name] = struct{}{}
+	}
+
+	oldCmds, err := d.Session.GuildCommands(app.ID, d.gid)
 	if err != nil {
 		return fmt.Errorf("unable to fetch commands: %w", err)
 	}
 
 	// Delete old commands.
-	for _, command := range oldCmds {
-		d.Session.DeleteCommand(app.ID, command.ID)
-		d.Logger.Info("deleted command",
-			zap.Any("command id", command.ID),
-			zap.String("command name", command.Name),
-		)
+	for _, cmd := range oldCmds {
+		if _, ok := cmdSet[cmd.Name]; !ok {
+			err := d.Session.DeleteGuildCommand(app.ID, d.gid, cmd.ID)
+			if err != nil {
+				d.Logger.Debug("unable to delete command", zap.String("name", cmd.Name))
+			} else {
+				d.Logger.Info("deleted old command", zap.String("name", cmd.Name))
+			}
+		}
 	}
 
 	// Create commands.
@@ -102,6 +110,7 @@ func (d *Discord) Setup(channels []string,
 		if _, err = d.Session.CreateGuildCommand(app.ID, d.gid, cmd); err != nil {
 			return fmt.Errorf("unable to create guild commands: %w", err)
 		}
+		d.Logger.Debug("added guild command", zap.String("name", cmd.Name))
 	}
 
 	// Populate existing channels.

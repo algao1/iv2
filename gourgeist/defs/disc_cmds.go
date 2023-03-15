@@ -1,6 +1,8 @@
 package defs
 
 import (
+	"strconv"
+
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -11,6 +13,7 @@ const (
 	EditCarbsCmd   = "editcarbs"
 	AddInsulinCmd  = "insulin"
 	EditInsulinCmd = "editinsulin"
+	EditVisCmd     = "editvis"
 	GenReportCmd   = "genreport"
 )
 
@@ -20,6 +23,7 @@ var Commands []api.CreateCommandData = []api.CreateCommandData{
 	editCarbsCmdData,
 	addInsulinCmdData,
 	editInsulinCmdData,
+	editVisCmdData,
 	generateReportCmdData,
 }
 
@@ -117,6 +121,23 @@ var editInsulinCmdData api.CreateCommandData = api.CreateCommandData{
 			OptionName:  "offset",
 			Description: "Time offset.",
 			Required:    false,
+		},
+	},
+}
+
+var editVisCmdData api.CreateCommandData = api.CreateCommandData{
+	Name:        EditVisCmd,
+	Description: "Edit the visibility for table entries",
+	Options: discord.CommandOptions{
+		&discord.StringOption{
+			OptionName:  "vis",
+			Description: "Visibility level.",
+			Choices: []discord.StringChoice{
+				{Name: "all", Value: strconv.Itoa(int(CarbInsulin))},
+				{Name: "carb", Value: strconv.Itoa(int(CarbOnly))},
+				{Name: "insulin", Value: strconv.Itoa(int(InsulinOnly))},
+			},
+			Required: true,
 		},
 	},
 }

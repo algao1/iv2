@@ -30,6 +30,7 @@ type PlotUpdater struct {
 	Store    PlotterStore
 
 	Logger        *zap.Logger
+	Descriptor    *dcr.Descriptor
 	Location      *time.Location
 	GlucoseConfig defs.GlucoseConfig
 }
@@ -44,12 +45,12 @@ func (pu PlotUpdater) Update() error {
 		return err
 	}
 
-	insulin, err := pu.Store.ReadInsulin(context.Background(), start, end)
+	insulin, err := pu.Store.ReadInsulin(ctx, start, end)
 	if err != nil {
 		return err
 	}
 
-	carbs, err := pu.Store.ReadCarbs(context.Background(), start, end)
+	carbs, err := pu.Store.ReadCarbs(ctx, start, end)
 	if err != nil {
 		return err
 	}
@@ -73,17 +74,17 @@ func (pu PlotUpdater) Update() error {
 		return nil
 	}
 
-	fr, err := pu.Plotter.GenerateDailyPlot(context.Background(), start, end)
+	fr, err := pu.Plotter.GenerateDailyPlot(ctx, start, end)
 	if err != nil {
 		pu.Logger.Debug("unable to generate daily plot", zap.Error(err))
 	}
 
-	fileReader, err := pu.Store.ReadFile(context.Background(), fr.GetId())
+	fileReader, err := pu.Store.ReadFile(ctx, fr.GetId())
 	if err != nil {
 		pu.Logger.Debug("unable to read file", zap.Error(err))
 	}
 
-	if err := pu.Store.DeleteFile(context.Background(), fr.GetId()); err != nil {
+	if err := pu.Store.DeleteFile(ctx, fr.GetId()); err != nil {
 		pu.Logger.Debug("unable to delete file", zap.Error(err))
 	}
 
@@ -101,7 +102,7 @@ func (pu PlotUpdater) Update() error {
 		},
 	}
 
-	desc, err := dcr.New(insulin, carbs, pu.Location)
+	desc, err := pu.Descriptor.New(insulin, carbs)
 	if err == nil {
 		embed.Description = desc
 	}

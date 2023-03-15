@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/defs"
-	dcr "iv2/gourgeist/pkg/desc"
 	"iv2/gourgeist/pkg/mg"
-	"reflect"
 	"strconv"
 	"time"
 )
@@ -32,31 +30,22 @@ func handleEditInsulin(cs CommanderStore, data defs.CommandInteraction, f cleanU
 	id := data.Options[0].Value
 
 	var ins defs.Insulin
-	var err error
-	if len(id) == 6 {
-		insuls, err := cs.ReadInsulin(
-			ctx,
-			time.Now().Add(defs.LookbackInterval),
-			time.Now(),
-		)
+	if rec, err := strconv.Atoi(id); err == nil {
+		end := time.Now()
+		insuls, err := cs.ReadInsulin(ctx, end.Add(defs.LookbackInterval), end)
 		if err != nil {
 			return err
 		}
 
-		for _, insul := range insuls {
-			if dcr.HashDigest(string(insul.ID)) == id {
-				ins = insul
-				break
-			}
-		}
-		if reflect.ValueOf(ins).IsZero() {
-			return fmt.Errorf("no entry found with digest %s", id)
-		}
-	} else {
-		err := cs.DocByID(ctx, mg.InsulinCollection, id, &ins)
-		if err != nil {
+		if len(insuls) <= rec {
 			return err
 		}
+		id = string(insuls[rec].ID)
+	}
+
+	err := cs.DocByID(ctx, mg.InsulinCollection, id, &ins)
+	if err != nil {
+		return err
 	}
 
 	var units = ins.Amount

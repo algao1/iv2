@@ -34,6 +34,7 @@ type CommandHandler struct {
 	Store   CommanderStore
 
 	Logger        *zap.Logger
+	Descriptor    *dcr.Descriptor
 	Location      *time.Location
 	GlucoseConfig defs.GlucoseConfig
 }
@@ -90,6 +91,8 @@ func (ch *CommandHandler) handleCommand(data defs.CommandInteraction) error {
 			ch.Location,
 			data,
 		)
+	case defs.EditVisCmd:
+		return handleEditVis(ch.Descriptor, data, ch.updateWithEvent)
 	default:
 		return fmt.Errorf("unknown command: %s", data.Name)
 	}
@@ -98,18 +101,19 @@ func (ch *CommandHandler) handleCommand(data defs.CommandInteraction) error {
 func (ch *CommandHandler) updateWithEvent() error {
 	end := time.Now()
 	start := end.Add(defs.LookbackInterval)
+	ctx := context.Background()
 
-	ins, err := ch.Store.ReadInsulin(context.Background(), start, end)
+	ins, err := ch.Store.ReadInsulin(ctx, start, end)
 	if err != nil {
 		return err
 	}
 
-	carbs, err := ch.Store.ReadCarbs(context.Background(), start, end)
+	carbs, err := ch.Store.ReadCarbs(ctx, start, end)
 	if err != nil {
 		return err
 	}
 
-	desc, err := dcr.New(ins, carbs, ch.Location)
+	desc, err := ch.Descriptor.New(ins, carbs)
 	if err != nil {
 		ch.Logger.Debug("unable to generate new dcr", zap.Error(err))
 	}

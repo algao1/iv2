@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/defs"
-	dcr "iv2/gourgeist/pkg/desc"
 	"iv2/gourgeist/pkg/mg"
-	"reflect"
 	"strconv"
 	"time"
 )
@@ -30,31 +28,22 @@ func handleEditCarbs(cs CommanderStore, data defs.CommandInteraction, f cleanUp)
 	id := data.Options[0].Value
 
 	var carb defs.Carb
-	var err error
-	if len(id) == 6 {
-		carbs, err := cs.ReadCarbs(
-			ctx,
-			time.Now().Add(defs.LookbackInterval),
-			time.Now(),
-		)
+	if rec, err := strconv.Atoi(id); err == nil {
+		end := time.Now()
+		carbs, err := cs.ReadCarbs(ctx, end.Add(defs.LookbackInterval), end)
 		if err != nil {
 			return err
 		}
 
-		for _, c := range carbs {
-			if dcr.HashDigest(string(c.ID)) == id {
-				carb = c
-				break
-			}
-		}
-		if reflect.ValueOf(carb).IsZero() {
-			return fmt.Errorf("no entry found with digest %s", id)
-		}
-	} else {
-		err := cs.DocByID(ctx, mg.CarbsCollection, id, &carb)
-		if err != nil {
+		if len(carbs) <= rec {
 			return err
 		}
+		id = string(carbs[rec].ID)
+	}
+
+	err := cs.DocByID(ctx, mg.CarbsCollection, id, &carb)
+	if err != nil {
+		return err
 	}
 
 	var amount = carb.Amount

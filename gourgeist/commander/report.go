@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"iv2/gourgeist/defs"
-	dcr "iv2/gourgeist/pkg/desc"
 	"iv2/gourgeist/pkg/ghastly"
 	"iv2/gourgeist/pkg/ghastly/proto"
 	"iv2/gourgeist/pkg/stats"
@@ -100,7 +99,7 @@ func handleGenReport(cs CommanderStore, cd CommanderDisplay, p ghastly.Plotter,
 		Embeds: []defs.EmbedData{
 			{
 				Title:       fmt.Sprintf("%s to %s", start.Format(monthDayFormat), end.Format(monthDayFormat)),
-				Description: dcr.Wrap(desc),
+				Description: "```" + desc + "```",
 				Fields: []defs.EmbedField{
 					{Name: "Average", Value: strconv.FormatFloat(ss.Average, 'f', 2, 64), Inline: true},
 					{Name: "Deviation", Value: strconv.FormatFloat(ss.Deviation, 'f', 2, 64), Inline: true},

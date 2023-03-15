@@ -64,6 +64,14 @@ type Alert struct {
 	Reason string     `bson:"reason"`
 }
 
+type Visibility uint64
+
+const (
+	CarbInsulin Visibility = iota
+	CarbOnly
+	InsulinOnly
+)
+
 // Wrapper for mongo.UpdateResult.
 type UpdateResult struct {
 	MatchedCount  int64
