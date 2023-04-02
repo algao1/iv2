@@ -45,6 +45,11 @@ func New(ctx context.Context, cfg defs.MongoConfig, dbName string, logger *zap.L
 		return nil, fmt.Errorf("unable to connect to mongo: %w", err)
 	}
 
+	err = mongoClient.Ping(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to ping mongo: %w", err)
+	}
+
 	return &MongoStore{
 		Client:   mongoClient,
 		Logger:   logger,

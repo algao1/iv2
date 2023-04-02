@@ -6,15 +6,16 @@ tasks:
   mongo-dump:
     desc: "Dump the contents of MongoDB onto a local file"
     cmds:
-      - mongodump -u=${MONGO_USERNAME} -p=${MONGO_PASSWORD} -o "dump_$(date +'%m_%d_%Y_%H:%M')"
+      - mkdir -p backups
+      - mongodump -u=${MONGO_USERNAME} -p=${MONGO_PASSWORD} -o "backups/dump_$(date +'%m_%d_%Y_%H:%M')"
 
   mongo-recover:
     desc: "Recover MongoDB from the most recent save"
     cmds:
-      - mongorestore --username $MONGO_USERNAME --password $MONGO_PASSWORD $(ls -d dump_* | tail -1)
+      - mongorestore --username $MONGO_USERNAME --password $MONGO_PASSWORD $(ls -d backups/dump_* | tail -1)
 
   mongo-tools-setup:
-    desc: "Download and install MongoDB"
+    desc: "Download and install MongoDB tools"
     cmds:
       - curl https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2004-x86_64-100.5.3.tgz -o mongodb-database-tools-ubuntu2004-x86_64-100.5.3.tgz
       - tar -zxvf mongodb-database-tools-*-100.5.3.tgz
@@ -45,7 +46,7 @@ tasks:
   build:
     desc: "Build the docker-compose file"
     cmds:
-      - docker-compose build
+      - docker-compose build --no-cache --parallel
 
   start-all:
     deps: [mongo-check]
@@ -53,7 +54,7 @@ tasks:
     cmds:
       - docker-compose --env-file .env up -d
 
-  start-cgourgeist-only:
+  start-gourgeist-only:
     desc: "Start the Gourgeist container only"
     cmds:
       - docker-compose build gourgeist

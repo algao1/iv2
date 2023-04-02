@@ -10,8 +10,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var configFile string
-var realConfigFile defs.Config
+var (
+	configFile string
+)
 
 func init() {
 	flag.StringVar(&configFile, "f", "config.yaml", "config file")
@@ -31,5 +32,11 @@ func main() {
 		panic(err)
 	}
 
-	gourgeist.Run(config)
+	_, err = gourgeist.NewGourgeist(config)
+	if err != nil {
+		panic(err)
+	}
+
+	// Block forever.
+	select {}
 }

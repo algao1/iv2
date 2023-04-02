@@ -1,0 +1,22 @@
+dexcom:
+  account: dexcom_account
+  password: dexcom_password
+discord:
+  token: discord_token
+  guild: discord_guild_snowflake
+mongo:
+  uri: mongodb://mongo:27017
+  username: mongo_username
+  password: mongo_password
+glucose:
+  # Glucose units are in mmol/l
+  low: 4
+  high: 9
+  target: 6
+alarm:
+  # In minutes
+  glucoseTimeout: 60
+  noInsulinTimeout: 60
+barebones: false
+trevenantAddress: localhost:50051
+timezone: "America/Toronto"

@@ -2,6 +2,7 @@ package gourgeist
 
 import (
 	"context"
+	"fmt"
 	"iv2/gourgeist/commander"
 	"iv2/gourgeist/defs"
 	dcr "iv2/gourgeist/pkg/desc"
@@ -17,67 +18,61 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Run(cfg defs.Config) {
+type Gourgeist struct {
+	commandHandler commander.CommandHandler
+	fetcher        Fetcher
+	plotUpdater    PlotUpdater
+	analyzer       Analyzer
+	logger         *zap.Logger
+}
+
+func NewGourgeist(cfg defs.Config) (*Gourgeist, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defs.TimeoutInterval)
 	defer cancel()
 
-	var err error
+	fmt.Println(cfg)
 
 	loc := time.Local
 	if cfg.Timezone != "" {
-		loc, err = time.LoadLocation(cfg.Timezone)
+		lloc, err := time.LoadLocation(cfg.Timezone)
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("unable to parse location: %w", err)
 		}
+		loc = lloc
 	}
 
 	ms, err := mg.New(ctx, cfg.Mongo, defs.DefaultDB, cfg.Logger)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("unable to create store: %w", err)
 	}
 
-	dexcom := dexcom.New(
-		cfg.Dexcom.Account,
-		cfg.Dexcom.Password,
-		cfg.Logger,
-	)
+	dexcom := dexcom.New(cfg.Dexcom.Account, cfg.Dexcom.Password, cfg.Logger)
+	f := Fetcher{Source: dexcom, Store: ms, Logger: cfg.Logger}
 
-	dg, err := discgo.New(
-		cfg.Discord.Token,
-		strconv.Itoa(cfg.Discord.Guild),
-		cfg.Logger,
-		loc,
-	)
+	guildID := strconv.Itoa(cfg.Discord.Guild)
+	dg, err := discgo.New(cfg.Discord.Token, guildID, cfg.Logger, loc)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("unable to create discord link: %w", err)
 	}
 
-	conn, err := grpc.Dial(
-		cfg.TrevenantAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	conn, err := grpc.Dial(cfg.TrevenantAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("unable to dial: %w", err)
 	}
 	gh := ghastly.New(conn, cfg.Logger)
-
-	d := dcr.New(loc)
 
 	ch := commander.CommandHandler{
 		Display:       dg,
 		Plotter:       gh,
 		Store:         ms,
 		Logger:        cfg.Logger,
-		Descriptor:    d,
+		Descriptor:    dcr.New(loc),
 		Location:      loc,
 		GlucoseConfig: cfg.Glucose,
 	}
 
-	if err = dg.Setup(
-		[]string{defs.AlertsChannel, defs.ReportsChannel},
-		ch.CreateHandler(),
-	); err != nil {
-		panic(err)
+	if err = dg.Setup([]string{defs.AlertsChannel, defs.ReportsChannel}, ch.CreateHandler()); err != nil {
+		return nil, fmt.Errorf("unable to setup discord link: %w", err)
 	}
 
 	pu := PlotUpdater{
@@ -85,7 +80,7 @@ func Run(cfg defs.Config) {
 		Plotter:       gh,
 		Store:         ms,
 		Logger:        cfg.Logger,
-		Descriptor:    d,
+		Descriptor:    dcr.New(loc),
 		Location:      loc,
 		GlucoseConfig: cfg.Glucose,
 	}
@@ -99,40 +94,30 @@ func Run(cfg defs.Config) {
 		AlarmConfig:   cfg.Alarm,
 	}
 
-	f := Fetcher{
-		Source: dexcom,
-		Store:  ms,
-		Logger: cfg.Logger,
+	g := &Gourgeist{
+		commandHandler: ch,
+		fetcher:        f,
+		plotUpdater:    pu,
+		analyzer:       an,
+		logger:         cfg.Logger,
 	}
+	g.run()
 
-	// TODO: Eventually, separate this out to be triggered by updates
-	// so that they don't run constantly.
-	ExecuteTask("loop", defs.DownloaderInterval, func() error {
-		var err error
-		if err = f.FetchAndLoad(); err != nil {
-			cfg.Logger.Error("fetching error", zap.Error(err))
-		}
-		if err = pu.Update(); err != nil {
-			cfg.Logger.Error("plot update error", zap.Error(err))
-		}
-		if err = an.Run(); err != nil {
-			cfg.Logger.Error("analyzer error", zap.Error(err))
-		}
-		return nil
-	}, cfg.Logger)
+	return g, nil
 }
 
-func ExecuteTask(taskName string, interval time.Duration, task func() error, logger *zap.Logger) {
-	ticker := time.NewTicker(interval)
+func (g *Gourgeist) run() {
+	ticker := time.NewTicker(defs.DownloaderInterval)
 	defer ticker.Stop()
 	for ; true; <-ticker.C {
-		err := task()
-		if err != nil {
-			logger.Error(
-				"error executing task",
-				zap.String("task", taskName),
-				zap.Error(err),
-			)
+		if err := g.fetcher.FetchAndLoad(); err != nil {
+			g.logger.Error("fetching error", zap.Error(err))
+		}
+		if err := g.plotUpdater.Update(); err != nil {
+			g.logger.Error("plot update error", zap.Error(err))
+		}
+		if err := g.analyzer.Run(); err != nil {
+			g.logger.Error("analyzer error", zap.Error(err))
 		}
 	}
 }

@@ -12,11 +12,11 @@ while IFS= read -r line; do
 done < "$1"
 
 if [[ ! $username_set ]]; then
-  echo "mongo username mismatch in .env and config"
+  echo "[FAIL] mongo username mismatch in .env and config"
   exit 1
 elif [[ ! $password_set ]]; then
-  echo "mongo password mismatch in .env and config"
+  echo "[FAIL] mongo password mismatch in .env and config"
   exit 1
 else
-  echo "mongo username and password matches in .env and config"
+  echo "[SUCCESS] mongo username and password matches in .env and config"
 fi
