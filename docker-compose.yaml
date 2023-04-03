@@ -29,3 +29,16 @@ services:
     restart: always
     ports:
       - "27017:27017"
+
+  ditto:
+    network_mode: "host"
+    build:
+      context: .
+      dockerfile: ./cmd/ditto/Dockerfile
+    container_name: ditto
+    volumes:
+      - type: bind
+        source: ./backups
+        target: /backups
+    depends_on:
+      - mongo

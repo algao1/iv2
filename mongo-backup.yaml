@@ -1,0 +1,5 @@
+jobs:
+  - name: mongo-backup
+    command: task mongo-dump
+    shell: /bin/bash
+    schedule: "0 2 * * *"
