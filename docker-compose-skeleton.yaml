@@ -1,0 +1,23 @@
+version: "3.7"
+services:
+
+  gourgeist:
+    image: registry.digitalocean.com/paperboy/gourgeist
+    build:
+      context: .
+      dockerfile: ./cmd/gourgeist/Dockerfile
+    container_name: gourgeist
+    depends_on:
+      - mongo
+    ports:
+      - "4242:4242"
+
+  mongo:
+    image: "mongo:5.0"
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USERNAME}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD}"
+    restart: always
+    ports:
+      - "27017:27017"

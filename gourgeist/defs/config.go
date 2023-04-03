@@ -30,6 +30,7 @@ type Config struct {
 	Alarm         AlarmConfig   `yaml:"alarm"`
 	TrevenantAddr string        `yaml:"trevenantAddress"`
 	Timezone      string        `yaml:"timezone"`
+	Skeleton      bool          `yaml:"skeleton"`
 	Logger        *zap.Logger   `yaml:"_,omitempty"`
 }
 

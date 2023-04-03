@@ -16,21 +16,33 @@ _This project is highly experimental, and should only be used as so._
 
 ## Setup
 
-To get started, you first need a Discord developer account and create a Bot. A Dexcom account is also required with Dexcom follow enabled.
+To get started, you first need a [Discord developer account](https://discord.com/developers/docs/intro) and create a Bot. A Dexcom account is also required with Dexcom Follow enabled.
 
-See the `example-config.yaml` included for further customizations such as:
+See the included `example-config.yaml` for how to setup your own `config.yaml` for further customizations such as:
 - Glucose alert thresholds
 - Time between alert triggers
 
-Note you'll also need a `.env` file containing the `$MONGO_USERNAME` and `MONGO_PASSWORD`.
+**Note: this step is not optional. A `config.yaml` is always required. At the bare-minimum, the MongoDB and Dexcom credentials are needed.**
 
-Having [Task](https://github.com/go-task/task) installed makes the setup easy, just:
+Note you'll also need to create a `.env` file containing the `$MONGO_USERNAME` and `MONGO_PASSWORD` for the database .
+
+Having [Task](https://github.com/go-task/task) installed makes the setup easy. To run the whole service suite, run:
 
 ```
 task mongo-tools-setup
-task proto
+task build
 task start-all
 ```
+
+If you only need a lightweight instance to store and read data (via http), run:
+
+```
+task start-skeleton
+```
+
+The glucose values are available at `http://localhost:4242/glucose?start=0&end=1680488158`.
+
+**Note: you will need to have included `skeleton: true` in the `config.yaml` file to run this.**
 
 ## Features
 
@@ -39,6 +51,8 @@ task start-all
 - **Real-time** glucose plots with customizable thresholds + insulin and carbs intake display
 - Generate weekly and monthly reports on performance metrics such as time spent within range
 - Customizable alerts for hyper/hypo-glycemia via Discord
+- Automated MongoDB backups via `ditto`
+  - Automated MongoDB restores to come soon...
 
 ## Why Discord?
 
@@ -51,6 +65,5 @@ Beyond what was suggested in the previous section, there's a few other things I 
 
 - More detailed weekly and monthly reports, compiled to PDF format for endocrinologists
 - Additional documentation on how to bootstrap a new iv2 instance from scratch
-- Automatic backups
 - Add support for `mg/dL` units
 - Train new prediction model using LSTM

@@ -46,7 +46,7 @@ tasks:
   build:
     desc: "Build the docker-compose file"
     cmds:
-      - docker-compose build --no-cache --parallel
+      - docker-compose build --parallel
 
   start-all:
     deps: [mongo-check]
@@ -59,6 +59,10 @@ tasks:
     cmds:
       - docker-compose build gourgeist
       - docker-compose --env-file .env up gourgeist
+
+  start-skeleton:
+    cmds:
+      - docker-compose --env-file .env -f docker-compose-skeleton.yaml up -d
 
   start-local:
     desc: "Start a local version of Gourgeist (no charts)"

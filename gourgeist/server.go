@@ -9,6 +9,7 @@ import (
 	"iv2/gourgeist/pkg/dexcom"
 	"iv2/gourgeist/pkg/discgo"
 	"iv2/gourgeist/pkg/ghastly"
+	"iv2/gourgeist/pkg/http"
 	"iv2/gourgeist/pkg/mg"
 	"strconv"
 	"time"
@@ -30,8 +31,6 @@ func NewGourgeist(cfg defs.Config) (*Gourgeist, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defs.TimeoutInterval)
 	defer cancel()
 
-	fmt.Println(cfg)
-
 	loc := time.Local
 	if cfg.Timezone != "" {
 		lloc, err := time.LoadLocation(cfg.Timezone)
@@ -48,6 +47,16 @@ func NewGourgeist(cfg defs.Config) (*Gourgeist, error) {
 
 	dexcom := dexcom.New(cfg.Dexcom.Account, cfg.Dexcom.Password, cfg.Logger)
 	f := Fetcher{Source: dexcom, Store: ms, Logger: cfg.Logger}
+
+	// TODO: very hacky, will redo this some other day.
+	if cfg.Skeleton {
+		cfg.Logger.Info("starting iv2 in skeleton-mode")
+
+		go http.New(ms)
+		g := &Gourgeist{fetcher: f}
+		g.runSkeleton()
+		return g, nil
+	}
 
 	guildID := strconv.Itoa(cfg.Discord.Guild)
 	dg, err := discgo.New(cfg.Discord.Token, guildID, cfg.Logger, loc)
@@ -104,6 +113,16 @@ func NewGourgeist(cfg defs.Config) (*Gourgeist, error) {
 	g.run()
 
 	return g, nil
+}
+
+func (g *Gourgeist) runSkeleton() {
+	ticker := time.NewTicker(defs.DownloaderInterval)
+	defer ticker.Stop()
+	for ; true; <-ticker.C {
+		if err := g.fetcher.FetchAndLoad(); err != nil {
+			g.logger.Error("fetching error", zap.Error(err))
+		}
+	}
 }
 
 func (g *Gourgeist) run() {

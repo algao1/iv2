@@ -1,10 +1,12 @@
 dexcom:
+  # This is absolutely neccessary to pull information from Dexcom.
   account: dexcom_account
   password: dexcom_password
 discord:
   token: discord_token
   guild: discord_guild_snowflake
 mongo:
+  # This is absolutely necessary (for now). In the future, a in-memory store might suffice.
   uri: mongodb://mongo:27017
   username: mongo_username
   password: mongo_password
@@ -17,6 +19,6 @@ alarm:
   # In minutes
   glucoseTimeout: 60
   noInsulinTimeout: 60
-barebones: false
 trevenantAddress: localhost:50051
 timezone: "America/Toronto"
+skeleton: false
